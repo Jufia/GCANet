@@ -17,7 +17,6 @@ import utilise
 import logging
 
 logging.basicConfig(
-    # filename='./checkpoint/log/' + args.algorithm + args.use_data + '.log',
     filename='./checkpoint/log/' + args.log_name + '.log',
     encoding="utf-8",
     filemode="w",

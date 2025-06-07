@@ -14,7 +14,7 @@ from utilise import *
 import logging
 
 logging.basicConfig(
-    filename='./checkpoint/log/' + args.log_name,
+    filename='./checkpoint/log/' + args.log_name + '.log',
     encoding="utf-8",
     filemode="w",
     format="{asctime} - {levelname} - {message}",

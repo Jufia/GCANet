@@ -32,13 +32,13 @@ parser.add_argument('--snr', type=float, default=None)
 parser.add_argument('--head', type=int, default=2)
 parser.add_argument('--GPU', type=str, default='cuda:2')
 parser.add_argument('--log_name', type=str, default="log_name")
-parser.add_argument('--algorithm', type=str, default='PatchTST', choices=['GCA', 'softshape', 'PatchTST', 'TCN', 'InceptionTime', 'NAT', 'MA1DCNN', 'ConvTran'])
-parser.add_argument('--use_data', type=str, default='hit', choices=['hit', 'xjtu', 'mcc5'])
+parser.add_argument('--algorithm', type=str, default='UniTS', choices=['GCA', 'softshape', 'PatchTST', 'UniTS', 'TCN', 'InceptionTime', 'NAT', 'MA1DCNN', 'ConvTran'])
+parser.add_argument('--use_data', type=str, default='xjtu', choices=['hit', 'xjtu', 'mcc5'])
 
 parser.add_argument('--alpha', type=float, default=1)
 parser.add_argument('--epochs', type=int, default=200)
-parser.add_argument('--windows', type=int, default=256)
-parser.add_argument('--length', type=int, default=1024)
+parser.add_argument('--windows', type=int, default=256, help='数据处理部分切片的stride')
+parser.add_argument('--length', type=int, default=1024, help='数据处理部分的序列长度')
 
 data_name = parser.parse_args().use_data
 inf = df.loc[data_name]

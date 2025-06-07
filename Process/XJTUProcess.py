@@ -9,7 +9,7 @@ from params import args
 import logging
 
 logging.basicConfig(
-    filename='./checkpoint/log/' + args.log_name,
+    filename='./checkpoint/log/' + args.log_name + '.log',
     encoding="utf-8",
     filemode="w",
     format="{asctime} - {levelname} - {message}",
@@ -40,7 +40,7 @@ def single_data(data: np.array, lable: int):
 
 def xjtu_read():
     # path = '/document/U/language/DataHub/XJTU/XJTU_Gearbox/'
-    path = './data/XJTU/XJTU_Gearbox/'
+    path = args.path
     files = os.listdir(path)
 
     samples = torch.empty([0, 2, args.length], dtype=torch.float)
@@ -63,8 +63,8 @@ def xjtu_read():
 
 def Loador():
     # x, y = xjtu_read()
-    x = torch.load(args.path + 'samples1024.pth', weights_only=False)
-    y = torch.load(args.path + 'labels1024.pth', weights_only=False)
+    x = torch.load('./data/XJTU/samples1024.pth', weights_only=False)
+    y = torch.load('./data/XJTU/labels1024.pth', weights_only=False)
     args.in_channel = x.shape[1]
     args.class_num = len(torch.unique(y))
     x_train, x_test, y_train, y_test = train_test_split(x, torch.Tensor(y), test_size=0.2)
