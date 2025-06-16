@@ -11,3 +11,6 @@ UniTS是一共通用模型，但本project只关注‘classification’任务，
 3. prompt tokens number=10
 4. patch size=16
 5. dropout=0.1
+6. epoch=5
+7. learning rate=3.2e-2
+8. batch size=1024

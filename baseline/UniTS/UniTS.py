@@ -528,20 +528,20 @@ class units(nn.Module):
         self.pad = 16
         self.patch_len = 16
         d_model = 64
-        dropout = 0.1
+        self.dropout = 0.1
 
         # in .yaml
-        enc_in = 6  # [1, 3, 6, 7]
+        enc_in = args.in_channel  # [1, 3, 6, 7]
         num_class = args.class_num
 
-        self.prompt_tokens = torch.zeros(1, enc_in, self.prompt_num, d_model)
+        self.prompt_tokens = nn.Parameter(torch.zeros(1, enc_in, self.prompt_num, d_model))
         torch.nn.init.normal_(self.prompt_tokens, std=.02)
-        self.mask_tokens = torch.zeros(1, enc_in, 1, d_model)
+        self.mask_tokens = nn.Parameter(torch.zeros(1, enc_in, 1, d_model))
 
-        self.category_tokens = torch.zeros(1, enc_in, num_class, d_model)
-        torch.nn.init.normal_(self.category_tokenss, std=.02)
-        self.cls_tokens = torch.zeros(1, enc_in, 1, d_model)
-        torch.nn.init.normal_(self.cls_token, std=.02)
+        self.category_tokens = nn.Parameter(torch.zeros(1, enc_in, num_class, d_model))
+        torch.nn.init.normal_(self.category_tokens, std=.02)
+        self.cls_tokens = nn.Parameter(torch.zeros(1, enc_in, 1, d_model))
+        torch.nn.init.normal_(self.cls_tokens, std=.02)
 
         # input processing
         self.patch_embeddings = PatchEmbedding(
@@ -621,5 +621,6 @@ class units(nn.Module):
         return x
 
     def forward(self, x_enc, x_dec=None, x_mark_dec=None, mask=None, task_id=None, task_name=None, enable_mask=None):
+        x_enc = x_enc.permute(0, 2, 1)
         dec_out = self.classification(x_enc)
         return dec_out  # [B, N]
