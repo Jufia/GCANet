@@ -17,7 +17,6 @@ import utilise
 import logging
 
 logging.basicConfig(
-    # filename='./checkpoint/log/' + args.algorithm + args.use_data + '.log',
     filename='./checkpoint/log/' + args.log_name + '.log',
     encoding="utf-8",
     filemode="w",
@@ -58,7 +57,7 @@ def L2_regulation(weight, lambda_l2):
     return lambda_l2 * torch.norm(weight, p=2)
 
 
-def train(model, train_loader, test_loader):
+def train(model, train_loader, valid_loder, test_loader):
     total_step = len(train_loader)
     logging.info(f"total step = {total_step}")
     criterion = nn.CrossEntropyLoss()
@@ -90,12 +89,13 @@ def train(model, train_loader, test_loader):
 
             if (batch_idx + 1) % (total_step - 4) == 0:
                 train_acc, _ = evaluate_model(model, DataLoader(TensorDataset(data.cpu(), target.cpu()), batch_size=args.batch_size))
-                correct, std = evaluate_model(model, test_loader)
+                correct, _ = evaluate_model(model, valid_loder)
+                test_acc, std = evaluate_model(model, test_loader)
                 loss_all.append(loss.item())
                 acc_all.append(correct)
                 acct_all.append(train_acc)
                 logging.info(
-                    f"Epoch [{epoch + 1}/{args.epochs}], Step[{batch_idx + 1}/{total_step}], alpha={alpha} Loss: {loss.item()} TrainACC: {train_acc}%, Acc: {correct}%, STD: {std}")
+                    f"Epoch [{epoch + 1}/{args.epochs}], Step[{batch_idx + 1}/{total_step}], alpha={alpha} Loss: {loss.item()} TrainACC: {train_acc}%, ValidationAcc: {correct}%, TestACC: {test_acc}, STD: {std}")
                 
                 if correct > args.best_model:
                     args.best_model = correct
@@ -109,12 +109,12 @@ def train(model, train_loader, test_loader):
 
 def test():
     model = model_dic[args.algorithm]()
-    train_loader, test_loader = loador_dict[args.use_data]()
+    train_loader, valid_loader, test_loader = loador_dict[args.use_data]()
     total = sum([param.nelement() for param in model.parameters()])
     print('***************** Number of parameter: {} Thousands ********************'.format(total / 1e3))
     logging.info(f"***************** Number of parameter: {total / 1e3} Thousands ********************")
     logging.info(f"setting: {args}")
-    train(model, train_loader, test_loader)
+    train(model, train_loader, valid_loader, test_loader)
     logging.info(f"*********The hightest ACC is {args.best_model}*************")
     np.save('./checkpoint/fig/'+args.log_name+'.npy', np.array([loss_all, acc_all, acct_all]))
     # acc = evaluate_model(model, test_loader) logging.info(f"Use FFC: {args.ffc} & Use Attention: {args.att} The Acc

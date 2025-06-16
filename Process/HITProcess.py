@@ -56,15 +56,15 @@ def HIT_Merge_Save():
 
     if not os.path.exists(root):
         os.mkdir(root)
-    torch.save(samples, './data/hit/samples200.pth')
-    torch.save(torch.Tensor(labels), './data/hit/labels200.pth')
+    torch.save(samples, './data/hit/unoverleap512x.pth')
+    torch.save(torch.Tensor(labels), './data/hit/unoverleap512y.pth')
     return samples, torch.Tensor(labels)
 
 
 def Loador():
-    # x, y = HIT_Merge_Save()
-    x = torch.load(args.path+'samples1024.pth', weights_only=False)  # (batch, 6, l)
-    y = torch.load(args.path+'labels1024.pth', weights_only=False)
+    x, y = HIT_Merge_Save()
+    # x = torch.load('./data/hit/unoverleap512x.pth', weights_only=False)  # (batch, 6, l)
+    # y = torch.load('./data/hit/unoverleap512y.pth', weights_only=False)
     args.in_channel = x.shape[1]
     args.class_num = len(torch.unique(y))
     x_train, x_test, y_train, y_test = train_test_split(x, torch.Tensor(y), test_size=0.2)

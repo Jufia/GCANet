@@ -31,19 +31,19 @@ parser.add_argument('--blocker', type=bool, default=True, help='use Gradient Blo
 parser.add_argument('--snr', type=float, default=None)
 parser.add_argument('--head', type=int, default=2)
 parser.add_argument('--GPU', type=str, default='cuda:2')
-parser.add_argument('--log_name', type=str, default="log_name")
-parser.add_argument('--algorithm', type=str, default='PatchTST', choices=['GCA', 'softshape', 'PatchTST', 'TCN', 'InceptionTime', 'NAT', 'MA1DCNN', 'ConvTran'])
-parser.add_argument('--use_data', type=str, default='hit', choices=['hit', 'xjtu', 'mcc5'])
+parser.add_argument('--log_name', type=str, default="log_name.log")
+parser.add_argument('--algorithm', type=str, default='DLinear', choices=['GCA', 'softshape', 'PatchTST', 'UniTS', 'DLinear', 'TCN', 'InceptionTime', 'NAT', 'MA1DCNN', 'ConvTran'])
+parser.add_argument('--use_data', type=str, default='mcc5', choices=['hit', 'xjtu', 'mcc5'])
 
 parser.add_argument('--alpha', type=float, default=1)
-parser.add_argument('--epochs', type=int, default=200)
-parser.add_argument('--windows', type=int, default=256)
-parser.add_argument('--length', type=int, default=1024)
+parser.add_argument('--epochs', type=int, default=10)
+parser.add_argument('--windows', type=int, default=512, help='数据处理部分切片的stride')
+parser.add_argument('--length', type=int, default=512, help='数据处理部分的序列长度')
 
 data_name = parser.parse_args().use_data
 inf = df.loc[data_name]
 parser.add_argument('--log_interval', type=int, default=70)
-parser.add_argument('--best_model', type=float, default=0, help='the hightest accuracy for model')
+parser.add_argument('--best_model', type=float, default=1, help='the hightest accuracy for model')
 parser.add_argument('--layer', type=list, default=layers, help='MobileNet setting')
 parser.add_argument('--path', type=str, default=inf['path'], choices={'XJTU': './data/XJTU/XJTU_Gearbox/', 'MCC5': './data/MCC5_THU/'})
 parser.add_argument('--in_channel', type=int, default=inf['channel'], choices={'HIT': 6, 'XJTU': 5, 'MCC5_THU': 8})

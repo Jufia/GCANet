@@ -14,7 +14,7 @@ from utilise import *
 import logging
 
 logging.basicConfig(
-    filename='./checkpoint/log/' + args.log_name,
+    filename='./checkpoint/log/' + args.log_name + '.log',
     encoding="utf-8",
     filemode="w",
     format="{asctime} - {levelname} - {message}",
@@ -95,28 +95,32 @@ def MCC5_Merge_Save():
             samples = torch.cat((samples, sub_samples), dim=0)
             labels = torch.cat((labels, sub_labels), dim=0)
 
-    torch.save(samples, root + '/data_samples1024.pth')
-    torch.save(labels, root + '/data_labels1024.pth')
+    torch.save(samples, './data/mcc5/unoverleap512x.pth')
+    torch.save(labels, './data/mcc5/unoverleap512y.pth')
     return samples, labels
 
 
 def Loador():
     # x, y = MCC5_Merge_Save()
-    x = torch.load(args.path + '/data_samples1024.pth', weights_only=False)  # (batch, 8, m, m)
-    y = torch.load(args.path + '/data_labels1024.pth', weights_only=False)
+    x = torch.load('./data/mcc5/unoverleap512x.pth', weights_only=False)  # (batch, 8, m, m)
+    y = torch.load('./data/mcc5/unoverleap512y.pth', weights_only=False)
     # x = torch.load('./data/MCC5_THU/data_samples36_fft.pth', weights_only=False)
     # y = torch.load('./data/MCC5_THU/data_labels36_fft.pth', weights_only=False)
 
     args.in_channel = x.shape[1]
     args.class_num = len(torch.unique(y))
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+    x_train, x_remain, y_train, y_remain = train_test_split(x, y, test_size=0.4, shuffle=True, random_state=44)
+    x_valid, x_test, y_valid, y_test = train_test_split(x_remain, y_remain, test_size=0.3, shuffle=False, random_state=1)
+
     train_set = TensorDataset(x_train, y_train)
+    valid_set = TensorDataset(x_valid, y_valid)
     test_set = TensorDataset(x_test, y_test)
 
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
-    test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=True)
+    valid_loader = DataLoader(valid_set, batch_size=args.batch_size, shuffle=False)
+    test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=False)
 
-    return train_loader, test_loader
+    return train_loader, valid_loader, test_loader
 
 
 if __name__ == '__main__':

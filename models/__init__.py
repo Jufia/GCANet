@@ -9,10 +9,14 @@
 from .GCAL import GCALNet
 from baseline.SoftShape.SoftShape import SoftShapeNet
 from baseline.PatchTST.PatchTST import patchtstModel
+from baseline.UniTS.UniTS import units
+from baseline.DLinear.DLinear import dlinear
 
 
 model_dic = {
                 'GCA': GCALNet,
                 'softshape': SoftShapeNet,
                 'PatchTST': patchtstModel,
+                'UniTS': units,
+                'DLinear': dlinear,
              }
