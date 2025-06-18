@@ -10,7 +10,7 @@ data_select = {'name': ['hit', 'xjtu', 'mcc5', 'dirg'],
                'path': ['/home/users/wzr/project/predict/Drive/ResNet50/data/hit/', 
                         '/home/users/wzr/project/predict/Drive/ResNet50/data/XJTU/XJTU_Gearbox/', 
                         '/home/users/wzr/project/predict/Drive/ResNet50/data/MCC5_THU/',
-                        '/home/users/wzr/project/predict/Drive/ResNet50/data/DIRG/'],
+                        './data/dirg/'],
                'channel': [6, 2, 8, 6],
                'class': [4, 9, 8, 7],
                'load': ['HITProcess', 'XJTUProcess', 'MCC5Process', 'DIRGProcess']}
@@ -19,7 +19,7 @@ df = pd.DataFrame(data_select).set_index('name')
 parser = argparse.ArgumentParser()
 
 # about data process
-parser.add_argument('--batch_size', type=int, default=256)
+parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--lr', type=float, default=1e-3)
 parser.add_argument('--lr_decay', type=float, default=0.1)
 

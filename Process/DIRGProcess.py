@@ -127,16 +127,28 @@ class DIRGDataProcessor:
         all_windows = all_windows.reshape(-1, n_features)
         all_windows = self.scaler.fit_transform(all_windows)
         all_windows = all_windows.reshape(n_samples, n_timesteps, n_features)
+
+        # 保存处理后的数据
+        save_dir = os.path.join(self.data_path, 'processed')
+        os.makedirs(save_dir, exist_ok=True)
+        
+        # 保存数据
+        np.save(os.path.join(save_dir, '512x.npy'), all_windows)
+        np.save(os.path.join(save_dir, '512y.npy'), np.array(all_labels))
         
         return all_windows, np.array(all_labels)
     
     def create_data_loaders(self, train_ratio=0.4, val_ratio=0.3, test_ratio=0.3):
         """创建训练、验证和测试数据加载器"""
         # 处理数据
-        X, y = self.process_data()
+        # x, y = self.process_data()
         
+        # 加载.npy数据
+        x = np.load('./data/dirg/processed/512x.npy')
+        y = np.load('./data/dirg/processed/512y.npy')
+               
         # 创建数据集
-        dataset = DIRGDataset(X, y)
+        dataset = DIRGDataset(x, y)
         
         # 计算数据集大小
         total_size = len(dataset)
@@ -161,7 +173,7 @@ class DIRGDataProcessor:
 
 def Loador():
     # 设置数据路径
-    data_path = r"E:\document\U\language\DataHub\DIRG\VariableSpeedAndLoad"
+    data_path = args.path
     processor = DIRGDataProcessor(
         data_path=data_path,
         window_size=args.windows,
