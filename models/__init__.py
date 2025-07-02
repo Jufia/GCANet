@@ -6,7 +6,7 @@
 # from .MA1DCNN import MA1DCNN
 # from .ConTran import ConvTran
 # from .TST import TSTransformerEncoderClassiregressor
-from .GCAL import GCALNet
+from .GCAL import GCANet
 from baseline.SoftShape.SoftShape import SoftShapeNet
 from baseline.PatchTST.PatchTST import patchtstModel
 from baseline.UniTS.UniTS import units
@@ -14,7 +14,7 @@ from baseline.DLinear.DLinear import dlinear
 
 
 model_dic = {
-                'GCA': GCALNet,
+                'GCA': GCANet,
                 'softshape': SoftShapeNet,
                 'PatchTST': patchtstModel,
                 'UniTS': units,

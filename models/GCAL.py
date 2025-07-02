@@ -33,19 +33,21 @@ class channel_fuse(nn.Module):
 
 
 class GCU(nn.Module):
-    def __init__(self, channels):
+    def __init__(self, channels, kernel=3, s=1):
         super().__init__()
         self.conv1 = nn.Sequential(
+            nn.BatchNorm1d(2*channels),
             nn.AvgPool1d(kernel_size=3, stride=1),
-            nn.Conv1d(2*channels, 2*channels, kernel_size=3, groups=2, stride=2),
+            nn.Conv1d(2*channels, 2*channels, kernel_size=kernel, groups=2, stride=s),
             nn.BatchNorm1d(2*channels)
         )
         self.conv2 = nn.Sequential(
+            nn.BatchNorm1d(2*channels),
             nn.AvgPool1d(kernel_size=3, stride=1),
-            nn.Conv1d(2*channels, 2*channels, kernel_size=3, groups=channels, stride=2),
+            nn.Conv1d(2*channels, 2*channels, kernel_size=kernel, groups=channels, stride=s),
             nn.BatchNorm1d(2*channels)
         )
-        
+
     def forward(self, x):
         b, c, l = x.size()
         yi, yr = gcu(x)  # (b, c, l) * 2
@@ -125,28 +127,6 @@ class SeModule(nn.Module):
             p = GradBlocker.apply(p, 0)
         return x * self.se(p).view(b, c, 1)
 
-# class SeModule(nn.Module):
-#     def __init__(self, in_size, d=16):
-#         super(SeModule, self).__init__()
-#         expand_size =  in_size*d
-#         self.se = nn.Sequential(
-#             nn.Conv1d(in_channels=in_size, out_channels=4*in_size, kernel_size=3),
-#             nn.AdaptiveAvgPool1d(d),
-#             nn.Linear(d, 1),
-#             nn.Conv1d(4*in_size, in_size*d, kernel_size=1),
-#             nn.ReLU(),
-#             nn.Flatten(start_dim=1),
-#             nn.Linear(d*in_size, in_size),
-#             h_sigmoid()
-#         )
-
-#     def forward(self, x):
-#         b, c, l = x.shape
-#         p = x.clone()
-#         if args.blocker:
-#             p = GradBlocker.apply(p, 0)
-#         return x * self.se(p).view(b, c, 1)
-
 
 class Channel_attention(nn.Module):
     def __init__(self, chann, if_gcu, head):
@@ -177,13 +157,13 @@ class Global_Convolution(nn.Module):
             )
 
         self.conv = nn.Sequential(
-            nn.AdaptiveMaxPool1d(len),
-            nn.Linear(len, len//8),
+            nn.AdaptiveMaxPool1d(len*2),
+            nn.Linear(len*2, len//8),
             nn.ReLU(),
             nn.Linear(len//8, len//2),
             nn.BatchNorm1d(4*in_channels),
             h_sigmoid(),
-            channel_fuse(in_chan=4*in_channels, num_feature=in_channels),
+            # channel_fuse(in_chan=4*in_channels, num_feature=in_channels),
         )
 
         if self.att:
@@ -192,7 +172,7 @@ class Global_Convolution(nn.Module):
     def forward(self, x):
         batch, c, l = x.size()
         if self.gcu:
-            y = self.gcu(x) # (b, c*4, l/2)
+            y = self.gcu(x) # (b, c*4, l/4)
         
         else:
             y = self.front(x)
@@ -259,18 +239,18 @@ class Block(nn.Module):
             return out
 
 
-class GCALNet(nn.Module):
+class GCANet(nn.Module):
     def __init__(self, new_class=args.class_num, in_chan=args.in_channel, dropout_rate=0.3):
-        super(GCALNet, self).__init__()
+        super(GCANet, self).__init__()
         self.num_classes = new_class
 
         layers = args.layer
 
         self.ffc = Global_Convolution(in_chan, if_gcu=args.gcug, if_att=args.attg, len=args.length//2)
-        self.fuse = channel_fuse(in_chan=in_chan, num_feature=10)
+        self.fuse = channel_fuse(in_chan=in_chan*4, num_feature=40)
 
         self.block = nn.Sequential(
-            Block(10, 24, 15, 2, 'RE', args.attb, args.gcub, args.head, 24)
+            Block(40, 24, 15, 2, 'RE', args.attb, args.gcub, args.head, 24)
         )
 
         out_conv2_in = 24
@@ -297,6 +277,6 @@ class GCALNet(nn.Module):
 
 if __name__ == '__main__':
     x = torch.rand(12, 6, 1024)
-    m = GCALNet()
+    m = GCANet()
     y = m(x)
     print(y.shape)

@@ -105,24 +105,13 @@ class GradBlocker(torch.autograd.Function):
 
 
 def gcu(x):
+    c = x.shape[1]
     ffted = torch.fft.fft(x)
     yi, yr = torch.abs(ffted.imag), torch.abs(ffted.real)
-    # (batch, c*2, l/2+1)
+    # (batch, c*2, l//2+1)
     # ffted = torch.cat((yi, yr), dim=1)
     # return torch.abs(ffted)
     return yi, yr
-
-class iGCU(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, x):
-        batch, c, l = x.size()
-        i, r = torch.split(x, int(c/2), dim=1)  # (batch,c, t, h, w/2+1, 2)
-        y = torch.complex(r, i)
-        y = torch.fft.irfft(y) # (batch, c, l)
-
-        return y
 
 
 if __name__ == '__main__':
