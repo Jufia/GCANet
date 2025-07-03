@@ -109,8 +109,8 @@ def Loador():
 
     args.in_channel = x.shape[1]
     args.class_num = len(torch.unique(y))
-    x_train, x_remain, y_train, y_remain = train_test_split(x, y, test_size=0.4, shuffle=True, random_state=44)
-    x_valid, x_test, y_valid, y_test = train_test_split(x_remain, y_remain, test_size=0.3, shuffle=False, random_state=1)
+    x_train, x_remain, y_train, y_remain = train_test_split(x, y, test_size=0.3, shuffle=True, random_state=44)
+    x_valid, x_test, y_valid, y_test = train_test_split(x_remain, y_remain, test_size=0.5, shuffle=False, random_state=1)
 
     train_set = TensorDataset(x_train, y_train)
     valid_set = TensorDataset(x_valid, y_valid)

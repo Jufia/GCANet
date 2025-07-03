@@ -624,3 +624,8 @@ class units(nn.Module):
         x_enc = x_enc.permute(0, 2, 1)
         dec_out = self.classification(x_enc)
         return dec_out  # [B, N]
+
+if __name__ == '__main__':
+    model = units()
+    x = torch.randn(8, 6, 512)
+    print(model(x).shape)

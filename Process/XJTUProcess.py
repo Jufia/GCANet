@@ -67,15 +67,18 @@ def Loador():
     y = torch.load('./data/XJTU/unoverleap512y.pth', weights_only=False)
     args.in_channel = x.shape[1]
     args.class_num = len(torch.unique(y))
-    x_train, x_test, y_train, y_test = train_test_split(x, torch.Tensor(y), test_size=0.2, random_state=44)
+    x_train, x_test, y_train, y_test = train_test_split(x, torch.Tensor(y), test_size=0.4, random_state=44)
+    x_test, x_val, y_test, y_val = train_test_split(x_test, y_test, test_size=0.5, random_state=44)
     train_set = TensorDataset(x_train, y_train)
     test_set = TensorDataset(x_test, y_test)
+    val_set = TensorDataset(x_val, y_val)
 
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
     test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=True)
+    val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=False)
 
     logging.info(f"total train samples: {len(train_set)} times batch")
-    return train_loader, test_loader
+    return train_loader, val_loader, test_loader
 
 
 if __name__ == '__main__':

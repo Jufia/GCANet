@@ -116,7 +116,7 @@ def test():
     logging.info(f"setting: {args}")
     train(model, train_loader, valid_loader, test_loader)
     logging.info(f"*********The hightest ACC is {args.best_model}*************")
-    np.save('./checkpoint/fig/'+args.log_name+'.npy', np.array([loss_all, acc_all, acct_all]))
+    # np.save('./checkpoint/fig/'+args.log_name+'.npy', np.array([loss_all, acc_all, acct_all]))
     # acc = evaluate_model(model, test_loader) logging.info(f"Use FFC: {args.ffc} & Use Attention: {args.att} The Acc
     # on dataset {args.use_data} is {acc * 100:.2f}%")
 

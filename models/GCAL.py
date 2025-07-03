@@ -60,53 +60,48 @@ class GCU(nn.Module):
 
 
 class agca(nn.Module):
-    def __init__(self, exp_size, d=16, divide=4, head=1):
+    def __init__(self, exp_size, head=1):
         super(agca, self).__init__()
-        self.len = 64
-        self.d = d
+        self.len = 16 # 处理后的序列长度
+        self.d = 16 # qkv_dim
         self.GCU = GCU(channels=exp_size)
+        self.head = head
 
-        gcu_cov = nn.Sequential(
-            nn.AdaptiveAvgPool1d(d),
-            nn.Linear(d, 1),
-            nn.Dropout(0.4),
-            nn.Conv1d(in_channels=4*exp_size, out_channels=exp_size*d, kernel_size=1, groups=4),
-            # nn.Dropout(0.1),
-            nn.ReLU(),
-        )
-                
-        self.se = nn.Sequential(
-            nn.Linear(1*head*d*exp_size, exp_size//divide),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(exp_size//divide, exp_size),
-            h_sigmoid()
+        self.avg_pool = nn.AdaptiveAvgPool1d(self.len)
+        self.norm = nn.LayerNorm(self.d)
+        # 反转了x，(B, C, L) -> (B, L, C)
+        self.qkv = nn.Linear(4*exp_size, head*self.d*3, bias=False)
+        self.proj = nn.Sequential(
+            nn.Linear(self.d*self.head, exp_size),
+            nn.Dropout(0.0),
+            h_swish(inplace=True)
         )
         
-        self.gca_cov1 = nn.ModuleList(
-            [gcu_cov for _ in range(head)]
-        ) # (b, 2*c, d)
-
     def forward(self, x):
-        batch, channels, length = x.size()
+        channels = x.shape[1]
         p = x.clone()
         if args.blocker:
             beta = 0 if alpha<0.3 else 1
             p = GradBlocker.apply(p, beta)
         y = self.GCU(p) # (b, 4*c, l/2)
-        x1 = torch.empty(batch, self.d*channels, 0).to(args.GPU)
-        for m in self.gca_cov1:
-            xm = m(y) # (b, 2*c, d)
-            x1 = torch.cat((x1, xm), dim=-1) # (b, 2*c, head*d)
+        batch, _, length = y.shape
+        y = y.permute(0, 2, 1) # (b, l/2, 4*c)
+        qkv = self.qkv(y).reshape(batch, length, 3, self.head, self.d).permute(2, 0, 1, 3, 4)   # (3, b, l/2, head, d)
+        q, k, v = qkv.unbind(0) # (b, head, l, d)
 
-        y = x1
-        out = y.flatten(start_dim=1)
-        out = self.se(out)
-        out = out.view(batch, channels, 1)
+        q, k = self.norm(q), self.norm(k)
+        q = q.reshape(batch, self.head, -1)
+        k = k.reshape(batch, self.head, -1)
+        v = v.reshape(batch, self.head, -1) # (b, len, d*head)
+        
+        att = F.scaled_dot_product_attention(q, k, v)   # (b, head, d*l)
+        # (b, head, d, len) -> (b, l, d, h) -> (b, l, d*h)
+        out_x = att.view(batch, self.head, self.d, length).permute(0, 3, 2, 1).reshape(batch, length, -1)
+        out_x = self.proj(out_x)
 
-        q = out * x
-        q = GradBlocker.apply(q, alpha)
-        return q
+        out_x = out_x.permute(0, 2, 1)
+        out_x = GradBlocker.apply(out_x, alpha)
+        return out_x
     
 
 class SeModule(nn.Module):
@@ -145,22 +140,25 @@ class Global_Convolution(nn.Module):
         super(Global_Convolution, self).__init__()
         self.gcu = if_gcu
         self.att = if_att
+        s = 2
+        k = 5
         if if_gcu:
-            self.gcu = GCU(channels=in_channels) # 2 * (b, 2*c, l/2)
+            self.gcu = GCU(channels=in_channels, kernel=k, s=s) # 2 * (b, 2*c, l/2)
 
         else:
             self.front = nn.Sequential(
                 nn.Conv1d(in_channels=in_channels, out_channels=4*in_channels,
-                        kernel_size=3, stride=2),
+                        kernel_size=k, stride=s),
                 nn.BatchNorm1d(4*in_channels),
                 nn.ReLU(inplace=True),
             )
 
         self.conv = nn.Sequential(
-            nn.AdaptiveMaxPool1d(len*2),
-            nn.Linear(len*2, len//8),
+            nn.AdaptiveMaxPool1d(len//s),
+            nn.Linear(len//s, len//s//6),
+            nn.Dropout(0.1),
             nn.ReLU(),
-            nn.Linear(len//8, len//2),
+            nn.Linear(len//s//6, len//4),
             nn.BatchNorm1d(4*in_channels),
             h_sigmoid(),
             # channel_fuse(in_chan=4*in_channels, num_feature=in_channels),
@@ -246,11 +244,11 @@ class GCANet(nn.Module):
 
         layers = args.layer
 
-        self.ffc = Global_Convolution(in_chan, if_gcu=args.gcug, if_att=args.attg, len=args.length//2)
-        self.fuse = channel_fuse(in_chan=in_chan*4, num_feature=40)
+        self.ffc = Global_Convolution(in_chan, if_gcu=args.gcug, if_att=args.attg, len=args.length)
+        self.fuse = channel_fuse(in_chan=in_chan*4, num_feature=10)
 
         self.block = nn.Sequential(
-            Block(40, 24, 15, 2, 'RE', args.attb, args.gcub, args.head, 24)
+            Block(10, 24, 15, 2, 'RE', args.attb, args.gcub, args.head, 24)
         )
 
         out_conv2_in = 24
@@ -276,7 +274,7 @@ class GCANet(nn.Module):
 
 
 if __name__ == '__main__':
-    x = torch.rand(12, 6, 1024)
+    x = torch.rand(12, 6, 512)
     m = GCANet()
     y = m(x)
     print(y.shape)
