@@ -61,18 +61,20 @@ def train(model, train_loader, valid_loder, test_loader):
     total_step = len(train_loader)
     logging.info(f"total step = {total_step}")
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.lambda_l2)
-    # optimizer = AdaX.AdaXW(model.parameters(), lr=args.lr)
-    # optimizer = torch.optim.SGD([
-    #     {'params': model.parameters()},
-    # ], lr=args.lr, weight_decay=args.lambda_l2)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.lambda_l2)
+    optimizer = torch.optim.SGD([
+        {'params': model.parameters()},
+    ], lr=args.lr, weight_decay=args.lambda_l2)
     # optimizer = torch.optim.SGD([{'params': model.parameters()}, {'params': model.classfier}], lr=args.lr)
     scheduler = MultiStepLR(optimizer, milestones=[20, 40, 60, 80], gamma=args.lr_decay)  # learning rates
     for epoch in range(args.epochs):
         model = model.to(device)
-        p = epoch / args.epochs
-        alpha = 2. / (1. + math.exp(-5 * p)) - 1
+        
+        loss_sum = 0
+
         for batch_idx, (data, target) in enumerate(train_loader):
+            p = (epoch*total_step + batch_idx) / (args.epochs * total_step)
+            alpha = 2. / (1. + math.exp(-5 * p)) - 1
             model.train()
             if args.snr != None:
                 data += utilise.wgn(data, args.snr)
@@ -87,15 +89,18 @@ def train(model, train_loader, valid_loder, test_loader):
             loss.backward()
             optimizer.step()
 
-            if (batch_idx + 1) % (total_step - 4) == 0:
-                train_acc, _ = evaluate_model(model, DataLoader(TensorDataset(data.cpu(), target.cpu()), batch_size=args.batch_size))
-                correct, _ = evaluate_model(model, valid_loder)
+            loss_sum += loss.item()
+            if (batch_idx + 1) % (total_step//10) == (total_step//10 - 1):
+                train_acc, stdt = evaluate_model(model, train_loader)
+                correct, stdv = evaluate_model(model, valid_loder)
                 test_acc, std = evaluate_model(model, test_loader)
-                loss_all.append(loss.item())
-                acc_all.append(correct)
-                acct_all.append(train_acc)
+
+                acc_all.append(train_acc)
+                acct_all.append(test_acc)
+                loss_all.append(loss_sum / (batch_idx + 1))
+
                 logging.info(
-                    f"Epoch [{epoch + 1}/{args.epochs}], Step[{batch_idx + 1}/{total_step}], alpha={alpha} Loss: {loss.item()} TrainACC: {train_acc}%, ValidationAcc: {correct}%, TestACC: {test_acc}, STD: {std}")
+                    f"Epoch [{epoch + 1}/{args.epochs}], Step[{batch_idx + 1}/{total_step}], alpha={alpha} Loss: {loss.item()} TrainACC: {train_acc}%, ValidationAcc: {correct}%, TestACC: {test_acc}, STDtrain: {stdt}, STDvalid: {stdv}, STDtest: {std}")
                 
                 if correct > args.best_model:
                     args.best_model = correct
@@ -117,6 +122,8 @@ def test():
     train(model, train_loader, valid_loader, test_loader)
     logging.info(f"*********The hightest ACC is {args.best_model}*************")
     # np.save('./checkpoint/fig/'+args.log_name+'.npy', np.array([loss_all, acc_all, acct_all]))
+    utilise.draw(loss_all, title=args.log_name+'loss')
+    utilise.sub_figure(np.array([acc_all, acct_all]), title=args.log_name)
     # acc = evaluate_model(model, test_loader) logging.info(f"Use FFC: {args.ffc} & Use Attention: {args.att} The Acc
     # on dataset {args.use_data} is {acc * 100:.2f}%")
 

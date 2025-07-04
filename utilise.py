@@ -27,7 +27,7 @@ def sub_figure(y, save=True, title=None, label=None):
     >>> sub_figure(y=y, x_ax=x, title='test')
     """
     n, length = y.shape
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(10, 6*n))  # 设置图片大小为10x6英寸
     for i in range(n):
         plt.subplot(n, 1, i + 1)
         plt.plot(y[i], label=str(i + 1))

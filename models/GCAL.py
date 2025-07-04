@@ -60,11 +60,14 @@ class GCU(nn.Module):
 
 
 class agca(nn.Module):
-    def __init__(self, exp_size, head=1):
+    def __init__(self, exp_size, head=1, if_gcu=False):
         super(agca, self).__init__()
         self.len = 16 # 处理后的序列长度
         self.d = 16 # qkv_dim
-        self.GCU = GCU(channels=exp_size)
+        if if_gcu:
+            self.GCU = GCU(channels=exp_size)
+        else:
+            self.GCU = channel_fuse(in_chan=exp_size, num_feature=4*exp_size)
         self.head = head
 
         self.avg_pool = nn.AdaptiveAvgPool1d(self.len)
@@ -79,10 +82,12 @@ class agca(nn.Module):
         
     def forward(self, x):
         channels = x.shape[1]
+
         p = x.clone()
         if args.blocker:
             beta = 0 if alpha<0.3 else 1
             p = GradBlocker.apply(p, beta)
+
         y = self.GCU(p) # (b, 4*c, l/2)
         batch, _, length = y.shape
         y = y.permute(0, 2, 1) # (b, l/2, 4*c)
@@ -100,7 +105,10 @@ class agca(nn.Module):
         out_x = self.proj(out_x)
 
         out_x = out_x.permute(0, 2, 1)
-        out_x = GradBlocker.apply(out_x, alpha)
+
+        if args.blocker:
+            out_x = GradBlocker.apply(out_x, alpha)
+
         return out_x
     
 
@@ -126,10 +134,10 @@ class SeModule(nn.Module):
 class Channel_attention(nn.Module):
     def __init__(self, chann, if_gcu, head):
         super(Channel_attention, self).__init__()
-        if if_gcu:
-            self.ca = agca(chann, head=head)
-        else:
-            self.ca = SeModule(chann, d=head)
+        # if if_gcu:
+        self.ca = agca(chann, head=head, if_gcu=if_gcu)
+        # else:
+        #     self.ca = SeModule(chann, d=head)
 
     def forward(self, x):
         return self.ca(x)
@@ -165,7 +173,7 @@ class Global_Convolution(nn.Module):
         )
 
         if self.att:
-            self.atten = agca(in_channels, gcu=if_gcu, head=args.head)
+            self.atten = agca(in_channels, if_gcu=if_gcu, head=args.head)
 
     def forward(self, x):
         batch, c, l = x.size()
