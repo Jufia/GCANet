@@ -1,4 +1,3 @@
-from .utilise import EarlyStopping, adjust_learning_rate, cal_accuracy
 import torch
 import torch.nn as nn
 from torch import optim
@@ -7,7 +6,8 @@ import time
 import warnings
 import numpy as np
 from torch.optim import lr_scheduler
-from ModernTCN import ModernTCN
+from .ModernTCN import ModernTCN
+from .utilise import EarlyStopping, adjust_learning_rate, cal_accuracy
 
 import pdb
 from params import args
@@ -181,4 +181,5 @@ class Exp_Classification(Exp_Basic):
 if __name__ == '__main__':
     exp = Exp_Classification()
     print('>>>>>>>start training -- for ModernTCN: >>>>>>>>>>>>>>>>>>>>>>>>>>')
+    train_loader, vali_loader, test_loader = zip(torch.rand(12, 6, 512), torch.rand(12, 1).long(), torch.rand(12, 6, 512), torch.rand(12, 1).long())
     exp.train(train_loader, vali_loader, test_loader)

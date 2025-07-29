@@ -1,22 +1,29 @@
-# from .LSTM import LSTM
-# from .Transformer import Transformer
-# from .TCN import TCN
-# from .Inception import InceptionTime
-# from .NAT import NAT
-# from .MA1DCNN import MA1DCNN
-# from .ConTran import ConvTran
-# from .TST import TSTransformerEncoderClassiregressor
 from .GCAL import GCANet
-from baseline.SoftShape.SoftShape import SoftShapeNet
+
+# ConvTran
 from baseline.PatchTST.PatchTST import patchtstModel
-from baseline.UniTS.UniTS import units
+from baseline.SoftShape.SoftShape import SoftShapeNet
+
+from baseline.TimesNet.timesnet import Model as TimesNet
+
+from baseline.ModernTCN.ModernTCN import Model as ModernTCNd
+from baseline.TimeMixer.TimeMixer import Model as TimeMixer
+
 from baseline.DLinear.DLinear import dlinear
+# LightTS
+
+from baseline.Inception.inception import InceptionTime
+from baseline.TCN.tcn import TCN
 
 
 model_dic = {
                 'GCA': GCANet,
-                'softshape': SoftShapeNet,
                 'PatchTST': patchtstModel,
-                'UniTS': units,
+                'softshape': SoftShapeNet,
+                'TimesNet': TimesNet,
+                'ModernTCN': ModernTCNd,
+                'TimeMixer': TimeMixer,
                 'DLinear': dlinear,
+                'InceptionTime': InceptionTime,
+                'TCN': TCN,
              }

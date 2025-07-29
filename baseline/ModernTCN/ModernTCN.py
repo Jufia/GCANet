@@ -201,7 +201,7 @@ class Stage(nn.Module):
 class ModernTCN(nn.Module):
     def __init__(self,task_name,patch_size,patch_stride, stem_ratio, downsample_ratio, ffn_ratio, num_blocks, large_size, small_size, dims, dw_dims,
                  nvars, small_kernel_merged=False, backbone_dropout=0.1, head_dropout=0.1, use_multi_scale=True, revin=True, affine=True,
-                 subtract_last=False, freq=None, seq_len=512, c_in=7, individual=False, target_window=96, class_drop=0.,class_num = 10):
+                 subtract_last=False, freq=None, seq_len=512, c_in=7, individual=False, target_window=0, class_drop=0.,class_num = 10):
 
         super(ModernTCN, self).__init__()
 
@@ -269,7 +269,7 @@ class ModernTCN(nn.Module):
             self.act_class = F.gelu
             self.class_dropout = nn.Dropout(self.class_drop)
 
-            self.head_class = nn.Linear(self.n_vars[0]*self.head_nf,self.class_num)
+            self.head_class = nn.Linear(self.n_vars*self.head_nf,self.class_num)
 
 
     def forward_feature(self, x, te=None):
@@ -297,6 +297,7 @@ class ModernTCN(nn.Module):
             x = self.stages[i](x)
         return x
 
+
     def classification(self,x):
 
         x =  self.forward_feature(x,te=None)
@@ -313,7 +314,6 @@ class ModernTCN(nn.Module):
             x = self.classification(x)
 
         return x
-
 
 
     def structural_reparam(self):
@@ -340,7 +340,7 @@ class Model(nn.Module):
         self.small_kernel_merged = False if self.large_size[0] > 13 else True
         self.drop_backbone = 0.05
         self.drop_head = 0
-        self.use_multi_scale = True
+        self.use_multi_scale = False
         self.revin = 1
         self.affine = 0
         self.subtract_last = 0
@@ -370,8 +370,14 @@ class Model(nn.Module):
                            individual=self.individual, target_window=self.target_window,
                             class_drop = self.class_dropout, class_num = self.class_num)
 
-    def forward(self, x, x_mark_enc, x_dec, x_mark_dec, mask=None):
-        x = x.permute(0, 2, 1)
+    def forward(self, x, x_mark_enc=None, x_dec=None, x_mark_dec=None, mask=None):
+        # x = x.permute(0, 2, 1)
         te = None
         x = self.model(x, te)
         return x
+
+if __name__ == '__main__':
+    x = torch.rand(13, args.in_channel, args.length)
+    m = Model()
+    y = m(x)
+    print(y.shape)
