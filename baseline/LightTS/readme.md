@@ -5,6 +5,13 @@ Link: https://dl.acm.org/doi/10.1145/3589316
 Code: https://github.com/thuml/Time-Series-Library/blob/main/models/LightTS.py
 
 超参数: https://github.com/thuml/Time-Series-Library/blob/main/scripts/classification/LightTS.sh
+```js
+--train_epochs 100
+--batch_size 16
+--learning_rate 0.001
+--optimizer 'radam'
+```
+
 cite
 ```bibtex
 @article{10.1145/3589316,

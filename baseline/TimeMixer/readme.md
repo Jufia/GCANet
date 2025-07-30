@@ -4,6 +4,13 @@ paper link: https://openreview.net/pdf?id=7oLshfEIC2
 
 Code: https://github.com/kwuking/TimeMixer
 
+```js
+--learning_rate 1e-3
+--batch_size 16
+--train_epochs 100
+--optimizer 'radam'
+```
+
 ```bibtex
 @article{wang2024timemixer++,
   title={TimeMixer++: A General Time Series Pattern Machine for Universal Predictive Analysis},

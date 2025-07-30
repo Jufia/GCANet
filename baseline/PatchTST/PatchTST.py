@@ -2,7 +2,6 @@
 code refer to thuml/Time-Series-Library
 paper: A Time Series is Worth 64 Words: Long-term Forecasting with Transformers
 '''
-
 import torch
 from torch import nn
 from .utilise import Encoder, EncoderLayer, FullAttention, AttentionLayer, PatchEmbedding
@@ -97,7 +96,7 @@ class patchtstModel(nn.Module):
         return dec_out  # [B, N]
     
 if __name__ == '__main__':
-    x = torch.rand(3, 5, 1024)
+    x = torch.rand(3, args.in_channel, args.length)
     model = patchtstModel()
     y = model(x)
     print(y.shape)

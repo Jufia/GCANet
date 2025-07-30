@@ -4,6 +4,14 @@ code: https://github.com/luodhhh/ModernTCN/tree/main
 
 paper: https://openreview.net/forum?id=vpJMJerXHU#
 
+```js
+--batch_size 128
+--learning_rate 1e-4
+--train_epochs 100
+--model_optim adam
+--lambda_l2 0
+```
+
 ```bibtex
 @inproceedings{
 donghao2024moderntcn,

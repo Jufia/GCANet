@@ -61,10 +61,13 @@ def train(model, train_loader, valid_loder, test_loader):
     total_step = len(train_loader)
     logging.info(f"total step = {total_step}")
     criterion = nn.CrossEntropyLoss()
-    # optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.lambda_l2)
-    optimizer = torch.optim.SGD([
-        {'params': model.parameters()},
-    ], lr=args.lr, weight_decay=args.lambda_l2)
+    if args.optimizer == 'adam':
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.lambda_l2)
+    elif args.optimizer == 'sgd':
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.lambda_l2)
+    elif args.optimizer == 'radam':
+        optimizer = torch.optim.RAdam(model.parameters(), lr=args.lr)
+        
     # optimizer = torch.optim.SGD([{'params': model.parameters()}, {'params': model.classfier}], lr=args.lr)
     scheduler = MultiStepLR(optimizer, milestones=[20, 40, 60, 80], gamma=args.lr_decay)  # learning rates
     for epoch in range(args.epochs):
