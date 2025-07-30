@@ -10,7 +10,7 @@ from baseline.ModernTCN.ModernTCN import Model as ModernTCNd
 from baseline.TimeMixer.TimeMixer import Model as TimeMixer
 
 from baseline.DLinear.DLinear import dlinear
-# LightTS
+from baseline.LightTS.LightTS import Model as LightTS
 
 from baseline.Inception.inception import InceptionTime
 from baseline.TCN.tcn import TCN
@@ -24,6 +24,7 @@ model_dic = {
                 'ModernTCN': ModernTCNd,
                 'TimeMixer': TimeMixer,
                 'DLinear': dlinear,
+                'LightTS': LightTS,
                 'InceptionTime': InceptionTime,
                 'TCN': TCN,
              }
