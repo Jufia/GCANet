@@ -1,3 +1,4 @@
+# run: bash ./scripts/run.sh
 device=cuda:7
 
 python -u main.py \
@@ -18,15 +19,15 @@ python -u main.py \
 #     --GPU $device \
 #     --optimizer adam
 
-python -u main.py \
-    --log_name 512_mcc5_TimesNet.log \
-    --use_data mcc5 \
-    --algorithm TimesNet \
-    --batch_size 16 \
-    --lr 0.001 \
-    --epochs 100 \
-    --GPU $device \
-    --optimizer radam
+# python -u main.py \
+#     --log_name 512_mcc5_TimesNet.log \
+#     --use_data mcc5 \
+#     --algorithm TimesNet \
+#     --batch_size 16 \
+#     --lr 0.001 \
+#     --epochs 100 \
+#     --GPU $device \
+    # --optimizer radam
 
 python -u main.py \
     --log_name 512_mcc5_ModernTCN.log \
@@ -38,16 +39,6 @@ python -u main.py \
     --GPU $device \
     --optimizer adam \
     --lambda_l2 0
-
-python -u main.py \
-    --log_name 512_mcc5_TimesNet.log \
-    --use_data mcc5 \
-    --algorithm TimesNet \
-    --batch_size 16 \
-    --lr 0.001 \
-    --epochs 100 \
-    --GPU $device \
-    --optimizer radam
 
 python -u main.py \
     --log_name 512_mcc5_TimeMixer.log \

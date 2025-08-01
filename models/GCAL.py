@@ -7,7 +7,6 @@ from utilise import *
 
 alpha = 1
 
-
 def _weights_init(m):
     if isinstance(m, nn.Conv1d):
         torch.nn.init.kaiming_uniform_(m.weight)
@@ -18,6 +17,7 @@ def _weights_init(m):
         m.bias.data.zero_()
     elif isinstance(m, nn.Linear):
         torch.nn.init.kaiming_uniform_(m.weight)
+
 
 class channel_fuse(nn.Module):
     def __init__(self, in_chan, num_feature):
@@ -60,28 +60,38 @@ class GCU(nn.Module):
 
 
 class agca(nn.Module):
-    def __init__(self, exp_size, head=1, if_gcu=False):
+    def __init__(self, exp_size, d=16, divide=4, head=1):
         super(agca, self).__init__()
-        self.len = 16 # 处理后的序列长度
-        self.d = 16 # qkv_dim
-        if if_gcu:
+        self.len = 64
+        self.d = d
+        if args.gcub:
             self.GCU = GCU(channels=exp_size)
         else:
-            self.GCU = channel_fuse(in_chan=exp_size, num_feature=4*exp_size)
-        self.head = head
+            self.GCU = no_gcub(exp_size, 5, 2)
 
-        self.avg_pool = nn.AdaptiveAvgPool1d(self.len)
-        self.norm = nn.LayerNorm(self.d)
-        # 反转了x，(B, C, L) -> (B, L, C)
-        self.qkv = nn.Linear(4*exp_size, head*self.d*3, bias=False)
-        self.proj = nn.Sequential(
-            nn.Linear(self.d*self.head, exp_size),
-            nn.Dropout(0.0),
-            h_swish(inplace=True)
+        gcu_cov = nn.Sequential(
+            nn.AdaptiveAvgPool1d(d),
+            nn.Linear(d, 1),
+            nn.Dropout(0.4),
+            nn.Conv1d(in_channels=4*exp_size, out_channels=exp_size*d, kernel_size=1, groups=4),
+            # nn.Dropout(0.1),
+            nn.ReLU(),
+        )
+                
+        self.se = nn.Sequential(
+            nn.Linear(1*head*d*exp_size, exp_size//divide),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(exp_size//divide, exp_size),
+            h_sigmoid()
         )
         
+        self.gca_cov1 = nn.ModuleList(
+            [gcu_cov for _ in range(head)]
+        ) # (b, 2*c, d)
+
     def forward(self, x):
-        channels = x.shape[1]
+        batch, channels, length = x.size()
 
         p = x.clone()
         if args.blocker:
@@ -89,77 +99,53 @@ class agca(nn.Module):
             p = GradBlocker.apply(p, beta)
 
         y = self.GCU(p) # (b, 4*c, l/2)
-        batch, _, length = y.shape
-        y = y.permute(0, 2, 1) # (b, l/2, 4*c)
-        qkv = self.qkv(y).reshape(batch, length, 3, self.head, self.d).permute(2, 0, 1, 3, 4)   # (3, b, l/2, head, d)
-        q, k, v = qkv.unbind(0) # (b, head, l, d)
+        x1 = torch.empty(batch, self.d*channels, 0).to(y.device)
+        for m in self.gca_cov1:
+            xm = m(y) # (b, 2*c, d)
+            x1 = torch.cat((x1, xm), dim=-1) # (b, 2*c, head*d)
 
-        q, k = self.norm(q), self.norm(k)
-        q = q.reshape(batch, self.head, -1)
-        k = k.reshape(batch, self.head, -1)
-        v = v.reshape(batch, self.head, -1) # (b, len, d*head)
-        
-        att = F.scaled_dot_product_attention(q, k, v)   # (b, head, d*l)
-        # (b, head, d, len) -> (b, l, d, h) -> (b, l, d*h)
-        out_x = att.view(batch, self.head, self.d, length).permute(0, 3, 2, 1).reshape(batch, length, -1)
-        out_x = self.proj(out_x)
+        y = x1
+        out = y.flatten(start_dim=1)
+        out = self.se(out)
+        out = out.view(batch, channels, 1)
 
-        out_x = out_x.permute(0, 2, 1)
+        q = out * x
 
         if args.blocker:
-            out_x = GradBlocker.apply(out_x, alpha)
+            q = GradBlocker.apply(q, alpha)
 
-        return out_x
-    
-
-class SeModule(nn.Module):
-    def __init__(self, in_size, d=4):
-        super(SeModule, self).__init__()
-        expand_size =  in_size*d
-        self.se = nn.Sequential(
-            nn.AdaptiveAvgPool1d(1),
-            nn.Flatten(start_dim=1),
-            nn.Linear(in_size, in_size, bias=False),
-            h_sigmoid()
-        )
-
-    def forward(self, x):
-        b, c, l = x.shape
-        p = x.clone()
-        if args.blocker:
-            p = GradBlocker.apply(p, 0)
-        return x * self.se(p).view(b, c, 1)
+        return q
 
 
 class Channel_attention(nn.Module):
-    def __init__(self, chann, if_gcu, head):
+    def __init__(self, channel):
         super(Channel_attention, self).__init__()
-        # if if_gcu:
-        self.ca = agca(chann, head=head, if_gcu=if_gcu)
-        # else:
-        #     self.ca = SeModule(chann, d=head)
+        head = args.head
+        att = args.att
+
+        if att == 'agca':
+            self.ca = agca(channel, head=head)
+        elif att == 'se':
+            self.ca = SeModule(channel, d=head)
+        else:
+            self.ca = nn.Identity()
 
     def forward(self, x):
         return self.ca(x)
 
 
 class Global_Convolution(nn.Module):
-    def __init__(self, in_channels, if_gcu, if_att=True, len=args.length):
+    def __init__(self, in_channels, if_att=False, len=args.length):
         super(Global_Convolution, self).__init__()
-        self.gcu = if_gcu
         self.att = if_att
+        if_gcu = args.gcug
         s = 2
         k = 5
         if if_gcu:
             self.gcu = GCU(channels=in_channels, kernel=k, s=s) # 2 * (b, 2*c, l/2)
 
         else:
-            self.front = nn.Sequential(
-                nn.Conv1d(in_channels=in_channels, out_channels=4*in_channels,
-                        kernel_size=k, stride=s),
-                nn.BatchNorm1d(4*in_channels),
-                nn.ReLU(inplace=True),
-            )
+            self.gcu = no_gcub(in_channels, k, s)
 
         self.conv = nn.Sequential(
             nn.AdaptiveMaxPool1d(len//s),
@@ -174,29 +160,24 @@ class Global_Convolution(nn.Module):
 
         if self.att:
             self.atten = agca(in_channels, if_gcu=if_gcu, head=args.head)
+        else:
+            self.atten = nn.Identity()
 
     def forward(self, x):
         batch, c, l = x.size()
-        if self.gcu:
-            y = self.gcu(x) # (b, c*4, l/4)
-        
-        else:
-            y = self.front(x)
 
+        y = self.gcu(x) # (b, c*4, l/4)
         y = self.conv(y)  # (batch, c, l)
-        
-        if self.att:
-            y = self.atten(y)
+        y = self.atten(y)
         
         return y # (b, c, l)
 
 
 class Block(nn.Module):
-    def __init__(self, in_channels, out_channels, kernal_size, stride, nonLinear, att, ifgca, head, exp_size):
+    def __init__(self, in_channels, out_channels, kernal_size, stride, nonLinear, head, exp_size):
         super(Block, self).__init__()
         self.out_channels = out_channels
         self.nonLinear = nonLinear
-        self.att = att
         padding = (kernal_size - 1) // 2
 
         self.use_connect = stride == 1 and in_channels == out_channels
@@ -217,12 +198,7 @@ class Block(nn.Module):
             nn.BatchNorm1d(exp_size),
         )
 
-        if self.att:
-            self.ca = Channel_attention(exp_size, if_gcu=ifgca, head=head)
-            # if ifgca:
-            #     self.agca = agca(exp_size, gcu=True, head=head)
-            # else:
-            #     self.agca = SeModule(exp_size)
+        self.ca = Channel_attention(exp_size)
 
         self.point_conv = nn.Sequential(
             nn.Conv1d(exp_size, out_channels, kernel_size=1, stride=1, padding=0),
@@ -234,8 +210,7 @@ class Block(nn.Module):
         out = self.conv(x)
         out = self.depth_conv(out)
 
-        if self.att:
-            out = self.ca(out)
+        out = self.ca(out)
 
         out = self.point_conv(out)
 
@@ -246,18 +221,13 @@ class Block(nn.Module):
 
 
 class GCANet(nn.Module):
-    def __init__(self, new_class=args.class_num, in_chan=args.in_channel, dropout_rate=0.3):
+    def __init__(self, num_class=args.class_num, in_chan=args.in_channel, dropout_rate=0.3):
         super(GCANet, self).__init__()
-        self.num_classes = new_class
 
-        layers = args.layer
-
-        self.ffc = Global_Convolution(in_chan, if_gcu=args.gcug, if_att=args.attg, len=args.length)
+        self.ffc = Global_Convolution(in_chan, if_att=False, len=args.length)
         self.fuse = channel_fuse(in_chan=in_chan*4, num_feature=10)
 
-        self.block = nn.Sequential(
-            Block(10, 24, 15, 2, 'RE', args.attb, args.gcub, args.head, 24)
-        )
+        self.block = Block(10, 24, 15, 2, 'RE', args.head, 24)
 
         out_conv2_in = 24
         out_conv2_out = 18
@@ -265,7 +235,7 @@ class GCANet(nn.Module):
             nn.Conv1d(out_conv2_in, out_conv2_out, kernel_size=1, stride=1),
             h_swish(inplace=True),
             nn.Dropout(dropout_rate),
-            nn.Conv1d(out_conv2_out, self.num_classes, kernel_size=1, stride=1),
+            nn.Conv1d(out_conv2_out, num_class, kernel_size=1, stride=1),
         )
 
         self.apply(_weights_init)
@@ -279,10 +249,21 @@ class GCANet(nn.Module):
         out = F.adaptive_avg_pool1d(out, output_size=1)
         out = self.out_conv2(out).view(batch, -1)
         return out
+    
+    def compute_gradient_norm(self):
+        total_norm = 0.0
+        for p in self.block.ca.parameters():
+            if p.grad is not None:
+                param_norm = p.grad.data.norm(2)
+                total_norm += param_norm.item() ** 2
+        total_norm = total_norm ** (1. / 2)
+        return total_norm
 
 
 if __name__ == '__main__':
-    x = torch.rand(12, 6, 512)
+    x = torch.rand(12, args.in_channel, args.length)
+    args.gcub = False
     m = GCANet()
     y = m(x)
     print(y.shape)
+    pass

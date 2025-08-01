@@ -19,6 +19,7 @@ def _weights_init(m):
     elif isinstance(m, nn.Linear):
         torch.nn.init.kaiming_uniform_(m.weight)
 
+
 class channel_fuse(nn.Module):
     def __init__(self, in_chan, num_feature):
         super(channel_fuse, self).__init__()

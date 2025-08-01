@@ -68,14 +68,15 @@ def Loador():
     args.in_channel = x.shape[1]
     args.class_num = len(torch.unique(y))
 
-    x_train, x_test, y_train, y_test = train_test_split(x, torch.Tensor(y), test_size=0.4)
-    x_test, x_val, y_test, y_val = train_test_split(x_test, y_test, test_size=0.5)
+    # 如果给train_test_split设置random_state参数（即随机种子），每次划分的数据集都会是固定的
+    x_train, x_test, y_train, y_test = train_test_split(x, torch.Tensor(y), test_size=0.4, random_state=42)
+    x_test, x_val, y_test, y_val = train_test_split(x_test, y_test, test_size=0.5, random_state=42)
 
     train_set = TensorDataset(x_train, y_train)
     test_set = TensorDataset(x_test, y_test)
     val_set = TensorDataset(x_val, y_val)
 
-    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
+    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, worker_init_fn=lambda worker_id: np.random.seed(42), generator=torch.Generator().manual_seed(42))
     test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=True)
     val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=True)
 

@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 
 from params import args
 
@@ -17,6 +18,28 @@ def draw(y, save=True, title=None):
         plt.title(title)
     if save:
         fig.savefig('./checkpoint/fig/' + title + '.jpg')
+    else:
+        plt.show()
+    plt.close(fig)
+
+def draw_multi(y, save=True, title=None, labels=None):
+    """
+    画多线图
+    y: shape为(n, length)的numpy数组或类似结构，每一行为一条曲线
+    labels: 每条曲线的标签，长度为n的列表
+    """
+    fig = plt.figure()
+    n = y.shape[0]
+    for i in range(n):
+        if labels is not None:
+            plt.plot(y[i], label=labels[i])
+        else:
+            plt.plot(y[i], label=f"line_{i+1}")
+    if title is not None:
+        plt.title(title)
+    plt.legend()
+    if save:
+        fig.savefig('./checkpoint/fig/' + (title if title else "multi_line") + '.jpg')
     else:
         plt.show()
     plt.close(fig)
@@ -53,6 +76,14 @@ def get_name(args, acc):
 
 
 # ****************************** About Data **********************************
+def get_info(x: np.ndarray) -> np.ndarray:
+    """
+    x: np.ndarray
+    """
+    max, min = np.max(x, axis=1), np.min(x, axis=1)
+    mean, std = np.mean(x, axis=1), np.std(x, axis=1)
+    return np.array([max, min, mean, std])
+
 def max_min(x):
     """
     x: torch.FloatTenosr
@@ -102,6 +133,39 @@ class GradBlocker(torch.autograd.Function):
         output = grad_output * ctx.alpha
 
         return output, None
+    
+
+class SeModule(nn.Module):
+    def __init__(self, in_size, d=4):
+        super(SeModule, self).__init__()
+        expand_size =  in_size*d
+        self.se = nn.Sequential(
+            nn.AdaptiveAvgPool1d(1),
+            nn.Flatten(start_dim=1),
+            nn.Linear(in_size, in_size, bias=False),
+            h_sigmoid()
+        )
+
+    def forward(self, x):
+        b, c, l = x.shape
+        p = x.clone()
+        if args.blocker:
+            p = GradBlocker.apply(p, 0)
+        return x * self.se(p).view(b, c, 1)
+
+
+class no_gcub(nn.Module):
+    def __init__(self, in_channels, k, s):
+        super(no_gcub, self).__init__()
+        self.fc = nn.Sequential(
+                nn.Conv1d(in_channels=in_channels, out_channels=4*in_channels,
+                        kernel_size=k, stride=s),
+                nn.BatchNorm1d(4*in_channels),
+                nn.ReLU(inplace=True),
+            )
+    
+    def forward(self, x):
+        return self.fc(x)
 
 
 def gcu(x):

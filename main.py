@@ -1,9 +1,7 @@
 import torch
 from torch import nn
 from torch.optim.lr_scheduler import MultiStepLR
-from torch.utils.data import TensorDataset, DataLoader
 import numpy as np
-import random
 import math
 
 import sys
@@ -28,6 +26,7 @@ logging.basicConfig(
 
 
 device = args.GPU
+model_grad = []
 loss_all = []
 acc_all = []
 acct_all = []
@@ -48,13 +47,29 @@ def evaluate_model(model, data_loader):
             correct = (predicted == labels.view(-1)).sum().item()
             acc.append(correct / labels.size(0))
 
-        # condidton = predicted != labels
-        # print('  pre: {}\n  tag: {}'.format(predicted[condidton], labels[condidton].type(torch.LongTensor)))
-        # logging.info(f"  pre: {predicted[condidton]}\n  tag: {labels[condidton].type(torch.LongTensor)}")
     return np.mean(acc)*100, np.std(acc)*100
 
-def L2_regulation(weight, lambda_l2):
-    return lambda_l2 * torch.norm(weight, p=2)
+
+def log_output(model, train_loader, valid_loder, test_loader, epoch, batch_idx, total_step, alpha, loss, loss_sum):
+    train_acc, stdt = evaluate_model(model, train_loader)
+    correct, stdv = evaluate_model(model, valid_loder)
+    test_acc, std = evaluate_model(model, test_loader)
+
+    acc_all.append(train_acc)
+    acct_all.append(test_acc)
+    loss_all.append(loss_sum / (batch_idx + 1))
+
+    logging.info(
+        f"Epoch [{epoch + 1}/{args.epochs}], Step[{batch_idx + 1}/{total_step}], alpha={alpha} Loss: {loss.item()} TrainACC: {train_acc}%, ValidationAcc: {correct}%, TestACC: {test_acc}, STDtrain: {stdt}, STDvalid: {stdv}, STDtest: {std}")
+    
+    if correct > args.best_model:
+        args.best_model = correct
+        if args.algorithm == 'GCAL':
+            name = utilise.get_name(args, correct)
+            torch.save(model.state_dict(), name)
+            if args.best_model == 100:
+                print(f"{args.log_name} is achieve 100%, program over!")
+                sys.exit()
 
 
 def train(model, train_loader, valid_loder, test_loader):
@@ -68,9 +83,9 @@ def train(model, train_loader, valid_loder, test_loader):
     elif args.optimizer == 'radam':
         optimizer = torch.optim.RAdam(model.parameters(), lr=args.lr)
         
-    # optimizer = torch.optim.SGD([{'params': model.parameters()}, {'params': model.classfier}], lr=args.lr)
     scheduler = MultiStepLR(optimizer, milestones=[20, 40, 60, 80], gamma=args.lr_decay)  # learning rates
     for epoch in range(args.epochs):
+        grad = []
         model = model.to(device)
         
         loss_sum = 0
@@ -90,30 +105,16 @@ def train(model, train_loader, valid_loder, test_loader):
             optimizer.zero_grad()
             loss = criterion(pre, target.view(-1))
             loss.backward()
+            if 'ablationB' in args.log_name:
+                grad.append(model.compute_gradient_norm())
             optimizer.step()
 
             loss_sum += loss.item()
             if (batch_idx + 1) % (total_step//10) == (total_step//10 - 1):
-                train_acc, stdt = evaluate_model(model, train_loader)
-                correct, stdv = evaluate_model(model, valid_loder)
-                test_acc, std = evaluate_model(model, test_loader)
-
-                acc_all.append(train_acc)
-                acct_all.append(test_acc)
-                loss_all.append(loss_sum / (batch_idx + 1))
-
-                logging.info(
-                    f"Epoch [{epoch + 1}/{args.epochs}], Step[{batch_idx + 1}/{total_step}], alpha={alpha} Loss: {loss.item()} TrainACC: {train_acc}%, ValidationAcc: {correct}%, TestACC: {test_acc}, STDtrain: {stdt}, STDvalid: {stdv}, STDtest: {std}")
-                
-                if correct > args.best_model:
-                    args.best_model = correct
-                    if args.algorithm == 'GCAL':
-                        name = utilise.get_name(args, correct)
-                        torch.save(model.state_dict(), name)
-                        if args.best_model == 100:
-                            print(f"{args.log_name} is achieve 100%, program over!")
-                            sys.exit()
-
+                log_output(model, train_loader, valid_loder, test_loader, epoch, batch_idx, total_step, alpha, loss, loss_sum)
+        
+        model_grad.append(grad)
+    
 
 def test():
     model = model_dic[args.algorithm]()
@@ -124,9 +125,16 @@ def test():
     logging.info(f"setting: {args}")
     train(model, train_loader, valid_loader, test_loader)
     logging.info(f"*********The hightest ACC is {args.best_model}*************")
-    # np.save('./checkpoint/fig/'+args.log_name+'.npy', np.array([loss_all, acc_all, acct_all]))
-    utilise.draw(loss_all, title=args.log_name+'loss')
-    utilise.sub_figure(np.array([acc_all, acct_all]), title=args.log_name)
+
+    utilise.draw(loss_all, title=args.log_name.split('.')[0]+'_loss')
+    utilise.sub_figure(np.array([acc_all, acct_all]), title=args.log_name.split('.')[0]+'_acc')
+    if 'ablationB' in args.log_name:
+        grad = np.array(model_grad)
+        grad = utilise.get_info(grad)
+        utilise.draw_multi(grad[:3], title=args.log_name.split('.')[0]+'_grad_mean', labels=['max', 'min', 'mean'])
+        utilise.draw(grad[-1], title=args.log_name.split('.')[0]+'_grad_std')
+        np.save('./checkpoint/res/'+args.log_name.split('.')[0]+'_grad.npy', model_grad)
+        np.save('./checkpoint/res/'+args.log_name.split('.')[0]+'_loss.npy', np.array([loss_all, acc_all, acct_all]))
     # acc = evaluate_model(model, test_loader) logging.info(f"Use FFC: {args.ffc} & Use Attention: {args.att} The Acc
     # on dataset {args.use_data} is {acc * 100:.2f}%")
 
