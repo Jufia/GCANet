@@ -76,7 +76,7 @@ def Loador():
     test_set = TensorDataset(x_test, y_test)
     val_set = TensorDataset(x_val, y_val)
 
-    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, worker_init_fn=lambda worker_id: np.random.seed(42), generator=torch.Generator().manual_seed(42))
+    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
     test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=True)
     val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=True)
 

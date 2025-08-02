@@ -14,6 +14,7 @@ df = pd.DataFrame(data_select).set_index('name')
 parser = argparse.ArgumentParser()
 
 # about data process
+parser.add_argument('--random_state', type=int, default=42)
 parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--lr', type=float, default=1e-3)
 parser.add_argument('--lr_decay', type=float, default=0.1)

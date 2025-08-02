@@ -1,11 +1,24 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import random
+import numpy as np
 
 from params import args
 from utilise import *
 
 alpha = 1
+
+# 设置模型初始化时的随机种子
+def set_seed(seed=42):
+    # random.seed(seed)  # 设置Python的随机数生成器的种子，保证random模块生成的随机数可复现
+    # np.random.seed(seed)  # 设置NumPy的随机数生成器的种子，保证NumPy生成的随机数可复现
+    # torch.manual_seed(seed)  # 设置PyTorch CPU的随机数生成器的种子，保证CPU上的操作可复现
+    # torch.cuda.manual_seed_all(seed)  # 设置所有GPU的随机数生成器的种子，保证多GPU环境下的操作可复现
+    # torch.backends.cudnn.deterministic = True  # 让cudnn的卷积操作使用确定性算法，保证每次运行结果一致（可复现）
+    # torch.backends.cudnn.benchmark = False  # 禁用cudnn的自动优化，进一步保证实验的可复现性
+    pass
+
 
 def _weights_init(m):
     if isinstance(m, nn.Conv1d):
@@ -223,6 +236,8 @@ class Block(nn.Module):
 class GCANet(nn.Module):
     def __init__(self, num_class=args.class_num, in_chan=args.in_channel, dropout_rate=0.3):
         super(GCANet, self).__init__()
+        
+        set_seed(args.random_state)
 
         self.ffc = Global_Convolution(in_chan, if_att=False, len=args.length)
         self.fuse = channel_fuse(in_chan=in_chan*4, num_feature=10)
@@ -237,7 +252,6 @@ class GCANet(nn.Module):
             nn.Dropout(dropout_rate),
             nn.Conv1d(out_conv2_out, num_class, kernel_size=1, stride=1),
         )
-
         self.apply(_weights_init)
 
     def forward(self, x, a=1):
