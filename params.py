@@ -2,9 +2,9 @@ import argparse
 import pandas as pd
 
 data_select = {'name': ['hit', 'xjtu', 'mcc5', 'dirg'],
-               'path': ['/home/users/wzr/project/predict/Drive/ResNet50/data/hit/', 
-                        '/home/users/wzr/project/predict/Drive/ResNet50/data/XJTU/XJTU_Gearbox/', 
-                        '/home/users/wzr/project/predict/Drive/ResNet50/data/MCC5_THU/',
+               'path': ['./data/hit/hit/', 
+                        './data/XJTU/XJTU/', 
+                        './data/MCC5_THU/mcc5/',
                         './data/dirg/'],
                'channel': [6, 2, 8, 6],
                'class': [4, 9, 8, 7],
@@ -26,10 +26,10 @@ parser.add_argument('--blocker', type=bool, default=True, help='use Gradient Blo
 
 parser.add_argument('--snr', type=float, default=None)
 parser.add_argument('--head', type=int, default=2)
-parser.add_argument('--GPU', type=str, default='cuda:2')
+parser.add_argument('--GPU', type=str, default='cuda:0')
 parser.add_argument('--log_name', type=str, default="ablationB_test.log")
 parser.add_argument('--algorithm', type=str, default='GCA')
-parser.add_argument('--use_data', type=str, default='hit', choices=['hit', 'xjtu', 'mcc5', 'dirg'])
+parser.add_argument('--use_data', type=str, default='mcc5', choices=['hit', 'xjtu', 'mcc5', 'dirg'])
 parser.add_argument('--optimizer', type=str, default='sgd', choices=['adam', 'sgd', 'radam'])
 
 parser.add_argument('--alpha', type=float, default=1)

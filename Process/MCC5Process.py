@@ -102,8 +102,8 @@ def MCC5_Merge_Save():
 
 def Loador():
     # x, y = MCC5_Merge_Save()
-    x = torch.load('./data/mcc5/unoverleap512x.pth', weights_only=False)  # (batch, 8, m, m)
-    y = torch.load('./data/mcc5/unoverleap512y.pth', weights_only=False)
+    x = torch.load(f'{args.path}unoverleap512x.pth', weights_only=False)  # (batch, 8, m, m)
+    y = torch.load(f'{args.path}unoverleap512y.pth', weights_only=False)
     # x = torch.load('./data/MCC5_THU/data_samples36_fft.pth', weights_only=False)
     # y = torch.load('./data/MCC5_THU/data_labels36_fft.pth', weights_only=False)
 

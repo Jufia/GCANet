@@ -146,7 +146,7 @@ class SeModule(nn.Module):
             h_sigmoid()
         )
 
-    def forward(self, x):
+    def forward(self, x, alpha=1):
         b, c, l = x.shape
         p = x.clone()
         if args.blocker:

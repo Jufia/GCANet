@@ -7,17 +7,15 @@ import numpy as np
 from params import args
 from utilise import *
 
-alpha = 1
 
 # 设置模型初始化时的随机种子
 def set_seed(seed=42):
-    # random.seed(seed)  # 设置Python的随机数生成器的种子，保证random模块生成的随机数可复现
-    # np.random.seed(seed)  # 设置NumPy的随机数生成器的种子，保证NumPy生成的随机数可复现
-    # torch.manual_seed(seed)  # 设置PyTorch CPU的随机数生成器的种子，保证CPU上的操作可复现
-    # torch.cuda.manual_seed_all(seed)  # 设置所有GPU的随机数生成器的种子，保证多GPU环境下的操作可复现
-    # torch.backends.cudnn.deterministic = True  # 让cudnn的卷积操作使用确定性算法，保证每次运行结果一致（可复现）
-    # torch.backends.cudnn.benchmark = False  # 禁用cudnn的自动优化，进一步保证实验的可复现性
-    pass
+    random.seed(seed)  # 设置Python的随机数生成器的种子，保证random模块生成的随机数可复现
+    np.random.seed(seed)  # 设置NumPy的随机数生成器的种子，保证NumPy生成的随机数可复现
+    torch.manual_seed(seed)  # 设置PyTorch CPU的随机数生成器的种子，保证CPU上的操作可复现
+    torch.cuda.manual_seed_all(seed)  # 设置所有GPU的随机数生成器的种子，保证多GPU环境下的操作可复现
+    torch.backends.cudnn.deterministic = True  # 让cudnn的卷积操作使用确定性算法，保证每次运行结果一致（可复现）
+    torch.backends.cudnn.benchmark = False  # 禁用cudnn的自动优化，进一步保证实验的可复现性
 
 
 def _weights_init(m):
@@ -30,6 +28,8 @@ def _weights_init(m):
         m.bias.data.zero_()
     elif isinstance(m, nn.Linear):
         torch.nn.init.kaiming_uniform_(m.weight)
+        if m.bias is not None:
+            torch.nn.init.zeros_(m.bias)
 
 
 class channel_fuse(nn.Module):
@@ -103,7 +103,7 @@ class agca(nn.Module):
             [gcu_cov for _ in range(head)]
         ) # (b, 2*c, d)
 
-    def forward(self, x):
+    def forward(self, x, alpha=1):
         batch, channels, length = x.size()
 
         p = x.clone()
@@ -143,8 +143,8 @@ class Channel_attention(nn.Module):
         else:
             self.ca = nn.Identity()
 
-    def forward(self, x):
-        return self.ca(x)
+    def forward(self, x, alpha=1):
+        return self.ca(x, alpha)
 
 
 class Global_Convolution(nn.Module):
@@ -219,11 +219,11 @@ class Block(nn.Module):
             activation(inplace=True)
         )
 
-    def forward(self, x):
+    def forward(self, x, alpha=1):
         out = self.conv(x)
         out = self.depth_conv(out)
 
-        out = self.ca(out)
+        out = self.ca(out, alpha)
 
         out = self.point_conv(out)
 
@@ -258,7 +258,7 @@ class GCANet(nn.Module):
         alpha = a
         x = self.ffc(x)
         out = self.fuse(x)
-        out = self.block(out)
+        out = self.block(out, alpha)
         batch, channels, length = out.size()
         out = F.adaptive_avg_pool1d(out, output_size=1)
         out = self.out_conv2(out).view(batch, -1)

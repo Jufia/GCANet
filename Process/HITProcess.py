@@ -1,3 +1,4 @@
+from ast import arg
 import os
 import numpy as np
 import torch
@@ -63,8 +64,8 @@ def HIT_Merge_Save():
 
 def Loador():
     # x, y = HIT_Merge_Save()
-    x = torch.load('./data/hit/unoverleap512x.pth', weights_only=False)  # (batch, 6, l)
-    y = torch.load('./data/hit/unoverleap512y.pth', weights_only=False)
+    x = torch.load(f'{args.path}unoverleap512x.pth', weights_only=False)  # (batch, 6, l)
+    y = torch.load(f'{args.path}unoverleap512y.pth', weights_only=False)
     args.in_channel = x.shape[1]
     args.class_num = len(torch.unique(y))
 
