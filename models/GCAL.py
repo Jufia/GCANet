@@ -108,7 +108,7 @@ class agca(nn.Module):
 
         p = x.clone()
         if args.blocker:
-            beta = 0 if alpha<0.3 else 1
+            beta = 0 if alpha<0.2 else 1
             p = GradBlocker.apply(p, beta)
 
         y = self.GCU(p) # (b, 4*c, l/2)
@@ -264,14 +264,15 @@ class GCANet(nn.Module):
         out = self.out_conv2(out).view(batch, -1)
         return out
     
-    def compute_gradient_norm(self):
+    def compute_gradient_norm(self, alpha):
         total_norm = 0.0
         for p in self.block.ca.parameters():
             if p.grad is not None:
                 param_norm = p.grad.data.norm(2)
                 total_norm += param_norm.item() ** 2
         total_norm = total_norm ** (1. / 2)
-        return total_norm
+        alpha = alpha if args.blocker else 1
+        return total_norm / alpha
 
 
 if __name__ == '__main__':

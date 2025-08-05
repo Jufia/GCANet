@@ -92,13 +92,13 @@ def train(model, train_loader, valid_loder, test_loader):
 
         for batch_idx, (data, target) in enumerate(train_loader):
             p = (epoch*total_step + batch_idx) / (args.epochs * total_step)
-            alpha = 2. / (1. + math.exp(-5 * p)) - 1
+            alpha = 2. / (1. + math.exp(-5 * p)) - 1 + 1e-6
             model.train()
             if args.snr != None:
                 data += utilise.wgn(data, args.snr)
             data, target = data.to(device), target.type(torch.LongTensor).to(device)
             if args.algorithm == 'GCA':
-                pre = model(data, alpha*1)
+                pre = model(data, alpha)
             else:
                 pre = model(data)
 
@@ -106,11 +106,11 @@ def train(model, train_loader, valid_loder, test_loader):
             loss = criterion(pre, target.view(-1))
             loss.backward()
             if 'ablationB' in args.log_name:
-                grad.append(model.compute_gradient_norm())
+                grad.append(model.compute_gradient_norm(alpha))
             optimizer.step()
 
             loss_sum += loss.item()
-            if (batch_idx + 1) % (total_step//10) == (total_step//10 - 1):
+            if (batch_idx + 1) % (total_step//2) == (total_step//2 - 1):
                 log_output(model, train_loader, valid_loder, test_loader, epoch, batch_idx, total_step, alpha, loss, loss_sum)
         
         model_grad.append(grad)
