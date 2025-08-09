@@ -93,7 +93,6 @@ def max_min(x):
     norm = (x - min) / (max - min)
     return norm
 
-
 def wgn(x: torch, snr: float):
     snr = pow(10, snr/10.0)
     xpower = pow(x, 2)

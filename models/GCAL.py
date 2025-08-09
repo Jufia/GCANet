@@ -142,7 +142,10 @@ class Channel_attention(nn.Module):
             self.ca = nn.Identity()
 
     def forward(self, x, alpha=1):
-        return self.ca(x, alpha)
+        if args.att == 'none':
+            return self.ca(x)
+        else:
+            return self.ca(x, alpha)
 
 
 class Global_Convolution(nn.Module):

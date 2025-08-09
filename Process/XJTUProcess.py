@@ -21,7 +21,7 @@ logging.basicConfig(
 
 def single_data(data: np.array, lable: int):
     # (channel, lenght) -> (batch, channel, m, m)
-    window = args.windows
+    window = args.length
     length = args.length
     channel, endpoint = data.shape
 
@@ -63,18 +63,18 @@ def xjtu_read():
 
 def Loador():
     # x, y = xjtu_read()
-    x = torch.load('./data/XJTU/unoverleap512x.pth', weights_only=False)
-    y = torch.load('./data/XJTU/unoverleap512y.pth', weights_only=False)
+    x = torch.load(f'{args.path}unoverleap{args.length}x.pth', weights_only=False)
+    y = torch.load(f'{args.path}unoverleap{args.length}y.pth', weights_only=False)
     args.in_channel = x.shape[1]
     args.class_num = len(torch.unique(y))
-    x_train, x_test, y_train, y_test = train_test_split(x, torch.Tensor(y), test_size=0.4, random_state=44)
-    x_test, x_val, y_test, y_val = train_test_split(x_test, y_test, test_size=0.5, random_state=44)
+    x_train, x_test, y_train, y_test = train_test_split(x, torch.Tensor(y), test_size=0.4, random_state=args.random_state)
+    x_test, x_val, y_test, y_val = train_test_split(x_test, y_test, test_size=0.5, random_state=args.random_state)
     train_set = TensorDataset(x_train, y_train)
     test_set = TensorDataset(x_test, y_test)
     val_set = TensorDataset(x_val, y_val)
 
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
-    test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=True)
+    test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=False)
     val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=False)
 
     logging.info(f"total train samples: {len(train_set)} times batch")

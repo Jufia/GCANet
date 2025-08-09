@@ -59,7 +59,7 @@ class patchtstModel(nn.Module):
         self.head_nf = d_model * int((self.seq_len - patch_len) / stride + 2)
         self.flatten = nn.Flatten(start_dim=-2)
         self.dropout = nn.Dropout(dropout)
-        self.projection = nn.Linear(self.head_nf * 6, args.class_num)
+        self.projection = nn.Linear(self.head_nf * args.in_channel, args.class_num)
 
     def classification(self, x_enc):
         # Normalization from Non-stationary Transformer

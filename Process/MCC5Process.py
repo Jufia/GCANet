@@ -61,7 +61,7 @@ def mcc5_read(file, label):
     result = np.array([value for key, value in data.items()])
     result = torch.Tensor(result).squeeze()
 
-    window = args.windows
+    window = args.length
     endpoint = result.shape[1]
     length = args.length
 
@@ -95,15 +95,15 @@ def MCC5_Merge_Save():
             samples = torch.cat((samples, sub_samples), dim=0)
             labels = torch.cat((labels, sub_labels), dim=0)
 
-    torch.save(samples, f'./data/mcc5/unoverleap{args.windows}x.pth')
-    torch.save(labels, f'./data/mcc5/unoverleap{args.windows}y.pth')
+    torch.save(samples, f'{args.path}unoverleap{args.length}x.pth')
+    torch.save(labels, f'{args.path}unoverleap{args.length}y.pth')
     return samples, labels
 
 
 def Loador():
     # x, y = MCC5_Merge_Save()
-    x = torch.load(f'{args.path}unoverleap{args.windows}x.pth', weights_only=False)  # (batch, 8, m, m)
-    y = torch.load(f'{args.path}unoverleap{args.windows}y.pth', weights_only=False)
+    x = torch.load(f'{args.path}unoverleap{args.length}x.pth', weights_only=False)  # (batch, 8, m, m)
+    y = torch.load(f'{args.path}unoverleap{args.length}y.pth', weights_only=False)
     # x = torch.load('./data/MCC5_THU/data_samples36_fft.pth', weights_only=False)
     # y = torch.load('./data/MCC5_THU/data_labels36_fft.pth', weights_only=False)
 

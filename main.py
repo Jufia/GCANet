@@ -64,12 +64,12 @@ def log_output(model, train_loader, valid_loder, test_loader, epoch, batch_idx, 
     
     if correct > args.best_model:
         args.best_model = correct
-        if args.algorithm == 'GCAL':
-            name = utilise.get_name(args, correct)
-            torch.save(model.state_dict(), name)
-            if args.best_model == 100:
-                print(f"{args.log_name} is achieve 100%, program over!")
-                sys.exit()
+        # if args.algorithm == 'GCAL':
+        #     name = utilise.get_name(args, correct)
+        #     torch.save(model.state_dict(), name)
+        if args.best_model == 100:
+            logging.info(f"{args.log_name} is achieve 100%, program over!")
+            sys.exit()
 
 
 def train(model, train_loader, valid_loder, test_loader):
@@ -120,8 +120,8 @@ def test():
     model = model_dic[args.algorithm]()
     train_loader, valid_loader, test_loader = loador_dict[args.use_data]()
     total = sum([param.nelement() for param in model.parameters()])
-    print('***************** Number of parameter: {} Thousands ********************'.format(total / 1e3))
-    logging.info(f"***************** Number of parameter: {total / 1e3} Thousands ********************")
+    print('***************** Number of {} parameter: {} Thousands ********************'.format(args.algorithm, total / 1e3))
+    logging.info(f"***************** Number of {args.algorithm} parameter: {total / 1e3} Thousands ********************")
     logging.info(f"setting: {args}")
     train(model, train_loader, valid_loader, test_loader)
     logging.info(f"*********The hightest ACC is {args.best_model}*************")

@@ -24,7 +24,7 @@ def hit_read(path: str, classify_label: int):
     feature = data[:, 0:6, :]  # (504, 6, 20480)
 
     args.in_channel = feature.shape[1]
-    window = args.windows
+    window = args.length
     endpoint = data.shape[-1]
     length = args.length
 
@@ -57,29 +57,29 @@ def HIT_Merge_Save():
 
     if not os.path.exists(root):
         os.mkdir(root)
-    torch.save(samples, './data/hit/unoverleap512x.pth')
-    torch.save(torch.Tensor(labels), './data/hit/unoverleap512y.pth')
+    torch.save(samples, f'{args.path}unoverleap{args.length}x.pth')
+    torch.save(torch.Tensor(labels), f'{args.path}unoverleap{args.length}y.pth')
     return samples, torch.Tensor(labels)
 
 
 def Loador():
     # x, y = HIT_Merge_Save()
-    x = torch.load(f'{args.path}unoverleap512x.pth', weights_only=False)  # (batch, 6, l)
-    y = torch.load(f'{args.path}unoverleap512y.pth', weights_only=False)
+    x = torch.load(f'{args.path}unoverleap{args.length}x.pth', weights_only=False)  # (batch, 6, l)
+    y = torch.load(f'{args.path}unoverleap{args.length}y.pth', weights_only=False)
     args.in_channel = x.shape[1]
     args.class_num = len(torch.unique(y))
 
     # 如果给train_test_split设置random_state参数（即随机种子），每次划分的数据集都会是固定的
-    x_train, x_test, y_train, y_test = train_test_split(x, torch.Tensor(y), test_size=0.4, random_state=42)
-    x_test, x_val, y_test, y_val = train_test_split(x_test, y_test, test_size=0.5, random_state=42)
+    x_train, x_test, y_train, y_test = train_test_split(x, torch.Tensor(y), test_size=0.4, random_state=args.random_state)
+    x_test, x_val, y_test, y_val = train_test_split(x_test, y_test, test_size=0.5, random_state=args.random_state)
 
     train_set = TensorDataset(x_train, y_train)
     test_set = TensorDataset(x_test, y_test)
     val_set = TensorDataset(x_val, y_val)
 
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
-    test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=True)
-    val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=True)
+    test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=False)
+    val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=False)
 
     return train_loader, val_loader, test_loader
 
