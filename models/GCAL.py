@@ -46,8 +46,9 @@ class channel_fuse(nn.Module):
 
 
 class GCU(nn.Module):
-    def __init__(self, channels, kernel=3, s=1):
+    def __init__(self, channels, kernel=3, s=1, fft_type: str = 'gcu'):
         super().__init__()
+        self.gcu = Transfer(fft_type)
         self.conv1 = nn.Sequential(
             nn.BatchNorm1d(2*channels),
             nn.AvgPool1d(kernel_size=3, stride=1),
@@ -63,7 +64,7 @@ class GCU(nn.Module):
 
     def forward(self, x):
         b, c, l = x.size()
-        yi, yr = gcu(x)  # (b, c, l) * 2
+        yi, yr = self.gcu(x)  # (b, c, l) * 2
         y1 = torch.cat((yi, yr), dim=1) # (b, 2*c, l)
         y2 = torch.cat((yi, yr), dim=-1).reshape(b, c*2, -1)
         y1 = self.conv1(y1)
@@ -77,10 +78,7 @@ class agca(nn.Module):
         super(agca, self).__init__()
         self.len = 64
         self.d = d
-        if args.gcub:
-            self.GCU = GCU(channels=exp_size)
-        else:
-            self.GCU = no_gcub(exp_size, 5, 2)
+        self.GCU = GCU(channels=exp_size, fft_type=args.gcub)
 
         gcu_cov = nn.Sequential(
             nn.AdaptiveAvgPool1d(d),
@@ -154,11 +152,8 @@ class Global_Convolution(nn.Module):
         if_gcu = args.gcug
         s = 2
         k = 5
-        if if_gcu:
-            self.gcu = GCU(channels=in_channels, kernel=k, s=s) # 2 * (b, 2*c, l/2)
+        self.gcu = GCU(channels=in_channels, kernel=k, s=s, fft_type=args.gcug) # 2 * (b, 2*c, l/2)
 
-        else:
-            self.gcu = no_gcub(in_channels, k, s)
 
         self.conv = nn.Sequential(
             nn.AdaptiveMaxPool1d(len//s),

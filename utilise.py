@@ -153,30 +153,34 @@ class SeModule(nn.Module):
             p = GradBlocker.apply(p, 0)
         return x * self.se(p).view(b, c, 1)
 
-
-class no_gcub(nn.Module):
-    def __init__(self, in_channels, k, s):
-        super(no_gcub, self).__init__()
-        self.fc = nn.Sequential(
-                nn.Conv1d(in_channels=in_channels, out_channels=4*in_channels,
-                        kernel_size=k, stride=s),
-                nn.BatchNorm1d(4*in_channels),
-                nn.ReLU(inplace=True),
-            )
-    
-    def forward(self, x):
-        return self.fc(x)
-
-
 def gcu(x):
     c = x.shape[1]
     ffted = torch.fft.fft(x)
     yi, yr = torch.abs(ffted.imag), torch.abs(ffted.real)
-    # (batch, c*2, l//2+1)
-    # ffted = torch.cat((yi, yr), dim=1)
-    # return torch.abs(ffted)
-    return yi, yr
+    return yi, yr   # (batch, c, l)
 
+def fft(x):
+    ffted = torch.fft.fft(x)
+    return torch.abs(ffted), torch.abs(ffted)   # (batch, c, l)
+
+def no_gcu(x):
+    return x, x
+
+class Transfer(nn.Module):
+    def __init__(self, fft_type) -> None:
+        super().__init__()
+        if fft_type == 'gcu':
+            self.transfer = gcu
+        elif fft_type == 'fft':
+            self.transfer = fft
+        else:
+            self.transfer = no_gcu
+        
+    def forward(self, x):
+        return self.transfer(x)
 
 if __name__ == '__main__':
-    pass
+    x = torch.randn(1, 6, 100)
+    y = gcu(x)
+    print(y.shape)
+

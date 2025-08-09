@@ -14,18 +14,18 @@ df = pd.DataFrame(data_select).set_index('name')
 parser = argparse.ArgumentParser()
 
 # about data process
-parser.add_argument('--random_state', type=int, default=42)
+parser.add_argument('--random_state', type=int, default=3470)
 parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--lr', type=float, default=1e-3)
 parser.add_argument('--lr_decay', type=float, default=0.1)
 
-parser.add_argument('--gcug', type=bool, default=True, help='use fast Fourier convolution Unit or not in Global Convolution')
+parser.add_argument('--gcug', type=str, default='fft', choices=['gcu', 'fft', 'none'], help='use fast Fourier convolution Unit or not in Global Convolution')
 parser.add_argument('--att', type=str, default='agca', choices=['se', 'agca', 'none'], help='use fast Fourier convolution Unit or not in Block')
-parser.add_argument('--gcub', type=bool, default=True, help='use fast Fourier convolution Unit or not in Block')
+parser.add_argument('--gcub', type=str, default='gcu', choices=['gcu', 'fft', 'none'], help='use fast Fourier convolution Unit or not in Block')
 parser.add_argument('--blocker', type=bool, default=True, help='use Gradient Blocking Layer or not in Channel Attention machine')
 
 parser.add_argument('--snr', type=float, default=None)
-parser.add_argument('--head', type=int, default=2)
+parser.add_argument('--head', type=int, default=6)
 parser.add_argument('--GPU', type=str, default='cuda:0')
 parser.add_argument('--log_name', type=str, default="ablationB_test.log")
 parser.add_argument('--algorithm', type=str, default='GCA')
