@@ -64,9 +64,9 @@ def log_output(model, train_loader, valid_loder, test_loader, epoch, batch_idx, 
     
     if correct > args.best_model:
         args.best_model = correct
-        # if args.algorithm == 'GCAL':
-        #     name = utilise.get_name(args, correct)
-        #     torch.save(model.state_dict(), name)
+        if 'ablitionA' in args.log_name:
+            name = utilise.get_name(args, correct)
+            torch.save(model.state_dict(), name)
         if args.best_model == 100:
             logging.info(f"{args.log_name} is achieve 100%, program over!")
             sys.exit()
