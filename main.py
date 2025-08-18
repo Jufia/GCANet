@@ -121,13 +121,14 @@ def test():
     train_loader, valid_loader, test_loader = loador_dict[args.use_data]()
     total = sum([param.nelement() for param in model.parameters()])
     print('***************** Number of {} parameter: {} Thousands ********************'.format(args.algorithm, total / 1e3))
+    print(f'log={args.log_name}, snr={args.snr}, gcu={args.gcug}, algorithm={args.algorithm}, length={args.length}')
     logging.info(f"***************** Number of {args.algorithm} parameter: {total / 1e3} Thousands ********************")
     logging.info(f"setting: {args}")
     train(model, train_loader, valid_loader, test_loader)
     logging.info(f"*********The hightest ACC is {args.best_model}*************")
 
-    utilise.draw(loss_all, title=args.log_name.split('.')[0]+'_loss')
-    utilise.sub_figure(np.array([acc_all, acct_all]), title=args.log_name.split('.')[0]+'_acc')
+    # utilise.draw(loss_all, title=args.log_name.split('.')[0]+'_loss')
+    # utilise.sub_figure(np.array([acc_all, acct_all]), title=args.log_name.split('.')[0]+'_acc')
     if 'ablationB' in args.log_name:
         grad = np.array(model_grad)
         grad = utilise.get_info(grad)

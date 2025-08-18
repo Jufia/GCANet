@@ -26,11 +26,11 @@ model_dic = {
 """
 
 def quality(model_name):
-    model = model_dic[model_name]().to(torch.device("cuda:0"))
+    model = model_dic[model_name]().to(torch.device(args.GPU))
     # summary(model,(args.in_channel, args.length), device='cuda')
-    summary(model, input_size=(1, args.in_channel, args.length))
+    summary(model, input_size=(args.batch_size, args.in_channel, args.length), device=args.GPU)
 
-    x = torch.rand(128, args.in_channel, args.length).to(args.GPU)
+    x = torch.rand(args.batch_size, args.in_channel, args.length).to(args.GPU)
     model = model.to(args.GPU)
     start_time = time.time()
     out = model(x)
@@ -44,7 +44,7 @@ def quality(model_name):
     print(f"Flops of model: {f}  ({flops}), \n  number of parameters: {p} ({params}), \n Time to calculate: {(end_time-start_time)*1000} ms \n")
 
 if __name__ == '__main__':
-    quality('TCN')
+    quality('GCA')
 
 
     # x1 = torch.arange(1, 4).reshape(1, 3).unsqueeze(-1) * torch.ones(1, 3, 3)
