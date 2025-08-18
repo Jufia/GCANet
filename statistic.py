@@ -28,7 +28,19 @@ model_dic = {
 def quality(model_name):
     model = model_dic[model_name]().to(torch.device(args.GPU))
     # summary(model,(args.in_channel, args.length), device='cuda')
+    # summary函数会显示模型参数总数，但不会直接显示模型占用的内存大小（如MB/GB）。
+    # 下面代码可以估算模型参数占用的显存（仅参数，不含中间激活/缓存）：
     summary(model, input_size=(args.batch_size, args.in_channel, args.length), device=args.GPU)
+
+    # 计算模型参数占用的内存（单位：MB）
+    param_size = 0
+    for param in model.parameters():
+        param_size += param.nelement() * param.element_size()
+    buffer_size = 0
+    for buffer in model.buffers():
+        buffer_size += buffer.nelement() * buffer.element_size()
+    size_all_mb = (param_size + buffer_size) / 1024**2
+    print(f"model size is {size_all_mb:.3f} MB")
 
     x = torch.rand(args.batch_size, args.in_channel, args.length).to(args.GPU)
     model = model.to(args.GPU)

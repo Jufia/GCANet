@@ -11,7 +11,7 @@ class dlinear(nn.Module):
     Paper link: https://arxiv.org/pdf/2205.13504.pdf
     """
 
-    def __init__(self, individual=False):
+    def __init__(self, individual=True):
         """
         individual: Bool, whether shared model among different variates.
         """
@@ -23,7 +23,7 @@ class dlinear(nn.Module):
         # Series decomposition block from Autoformer
         self.decompsition = series_decomp(25)
         self.individual = individual
-        self.channels = args.in_channel
+        self.channels = args.in_channel  # 修正：使用输入通道数而不是序列长度
 
         if self.individual:
             self.Linear_Seasonal = nn.ModuleList()
@@ -88,3 +88,8 @@ class dlinear(nn.Module):
             dec_out = self.classification(x_enc)
             return dec_out  # [B, N]
         return None
+
+if __name__ == '__main__':
+    model = dlinear()
+    x = torch.randn(3, args.in_channel, args.length)
+    print(model(x).shape)

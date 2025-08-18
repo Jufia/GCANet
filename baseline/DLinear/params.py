@@ -26,9 +26,9 @@ parser.add_argument('--blocker', type=bool, default=True, help='use Gradient Blo
 
 parser.add_argument('--snr', type=float, default=None)
 parser.add_argument('--head', type=int, default=6)
-parser.add_argument('--GPU', type=str, default='cuda:0')
-parser.add_argument('--log_name', type=str, default="ablitionA.log")
-parser.add_argument('--algorithm', type=str, default='GCA')
+parser.add_argument('--GPU', type=str, default='cuda:1')
+parser.add_argument('--log_name', type=str, default="test.log")
+parser.add_argument('--algorithm', type=str, default='DLinear')
 parser.add_argument('--use_data', type=str, default='hit', choices=['hit', 'xjtu', 'mcc5', 'dirg'])
 parser.add_argument('--optimizer', type=str, default='adam', choices=['adam', 'sgd', 'radam'])
 

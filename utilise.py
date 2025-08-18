@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from params import args
-
+import matplotlib.lines as mlines
 
 # ****************************** About plot **************************************
 
@@ -73,6 +73,119 @@ def get_name(args, acc):
     name += '.pth'
 
     return name
+
+
+def draw_boxplot_by_your_husband(data_list, title, use_data, length):
+    noise_range = ['raw', 1, -1, -3, -6]
+    gcu_range = ['gcu', 'nogcu']
+    colors = ['green', 'purple']
+
+    boxplot_positions = []
+    colors_used = []
+    boxplot_data = data_list
+
+    for i, noise in enumerate(noise_range):
+        for j, gcu in enumerate(gcu_range):
+            boxplot_positions.append(i * (len(gcu_range)+1) + j + 1)
+            colors_used.append(colors[j])
+
+    # Create the boxplot
+    fig, ax = plt.subplots(figsize=(10, 8))
+    # Define properties for the boxplot
+    boxprops = dict(linewidth=1, color='black')  # Box properties
+    whiskerprops = dict(linewidth=1, color='black')  # Same color for whiskers
+    meanprops = dict(marker='D', markeredgecolor='black', markerfacecolor='white', markersize=6,alpha = 0.8)  # Mean marker
+    flierprops = dict(marker='o', markerfacecolor='white', markeredgecolor='black', markersize=6)  # Outliers as small hollow circles
+    midprops = dict(linewidth=1, color='m',alpha=1)  # Middle line
+    # Create the boxplot
+    box = ax.boxplot(
+        boxplot_data, positions=boxplot_positions, patch_artist=True, showfliers=True, showmeans=True,
+        boxprops=boxprops, whiskerprops=whiskerprops, meanprops=meanprops, flierprops=flierprops, medianprops=midprops
+    )
+
+    # Set colors for the boxes (light fill, dark edge)
+    for patch, color in zip(box['boxes'], colors_used):
+        # patch.set_facecolor(color)  # Set box fill color
+        rgba_color = plt.cm.colors.to_rgba(color, alpha=0.4)  # Choose a color and adjust the transparency
+        patch.set_facecolor(rgba_color)
+        patch.set_edgecolor('black')  # Set edge color for consistency
+
+
+
+    # Customize the plot
+    ax.set_xticks(
+        ticks=[(i * (len(gcu_range)+1) + len(gcu_range) / 2 + 0.5) for i in range(len(noise_range))],
+        labels=[f"{i}" for i in noise_range],
+        fontsize=10
+    )
+    ax.set_xlabel("Noise")
+    ax.set_ylabel("Accuracy")
+    ax.set_title(title)
+    
+    # Create the legend handles for the flier, mean, and median
+    flier_marker = mlines.Line2D([], [], marker='o', color='w', markerfacecolor='white', markeredgecolor='black', markersize=6, label='Flier')
+    mean_marker = mlines.Line2D([], [], marker='D', color='w', markeredgecolor='black', markersize=6, label='Mean')
+    median_line = mlines.Line2D([], [], color='m', label='Median')
+    # Create the legend handles for the methods
+    method_legend_handles = [plt.Line2D([0], [0], color=color, lw=4,alpha=0.4) for color in colors]
+    method_legend_labels = gcu_range
+    legend1 = ax.legend(
+        handles=method_legend_handles,
+        labels=method_legend_labels,
+        title="Methods",
+        loc="upper right",
+        bbox_to_anchor=(1, 1),
+        frameon=False
+    )
+    # legend1.set_title("Methods", prop={ 'weight': 'bold'})
+    ax.legend(
+        handles=[flier_marker, mean_marker, median_line],
+        labels=['Flier', 'Mean', 'Median'],
+        title="Markers",
+        loc="upper right" ,
+        bbox_to_anchor=(0.999, 0.88),
+        frameon=False
+    )
+    ax.add_artist(legend1)
+    plt.tight_layout()
+
+    plt.savefig(f'./checkpoint/fig/ablitionA_{use_data}_{length}.png')
+    plt.close()
+    
+    
+
+def draw_boxplot(data_list, title, use_data, length):
+    # 设置箱线图的位置，使组内相邻，组间有较大间隔
+    positions = []
+    group_gap = 2  # 组间间隔
+    for i in range(5):
+        positions.append(i * group_gap + 1)
+        positions.append(i * group_gap + 1.7)
+
+    # 设置每个箱线图的标签
+    labels = []
+    for snr in ['raw', 1, -1, -3, -6]:
+        labels.append(f'{snr}')
+        labels.append('')
+
+    plt.figure(figsize=(16, 8))
+    box = plt.boxplot(data_list, positions=positions, widths=0.6, patch_artist=True, showmeans=True)
+
+    # 设置颜色，组内同色，组间不同色
+    if use_data == 'xjtu':
+        colors = ['#1f77b4', '#aec7e8', '#ff7f0e', '#ffbb78', '#2ca02c', '#98df8a', '#d62728', '#ff9896', '#9467bd', '#c5b0d5']
+    else:
+        colors = ['#1f77b4', '#aec7e8', '#ff7f0e', '#ffbb78', '#2ca02c', '#98df8a', '#d62728', '#ff9896', '#9467bd', '#c5b0d5']
+    for patch, color in zip(box['boxes'], colors):
+        patch.set_facecolor(color)
+
+    plt.xticks(positions, labels, rotation=30)
+    plt.title(title)
+    plt.ylabel('准确率')
+    plt.grid(axis='y')
+    plt.tight_layout()
+    plt.savefig(f'./checkpoint/fig/ablitionA_{use_data}_{length}.jpg')
+    plt.close()
 
 
 # ****************************** About Data **********************************

@@ -34,7 +34,7 @@ parser.add_argument('--optimizer', type=str, default='adam', choices=['adam', 's
 
 parser.add_argument('--alpha', type=float, default=1)
 parser.add_argument('--epochs', type=int, default=100)
-parser.add_argument('--length', type=int, default=1024, help='数据处理部分的序列长度')
+parser.add_argument('--length', type=int, default=512, help='数据处理部分的序列长度')
 
 parser.add_argument('--lambda_l2', type=float, default=1e-4)
 
