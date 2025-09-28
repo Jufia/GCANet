@@ -44,6 +44,33 @@ def draw_multi(y, save=True, title=None, labels=None):
         plt.show()
     plt.close(fig)
 
+def draw_loss(y, save=True, title=None, labels=None):
+    """
+    画多线图
+    y: shape为(n, length)的numpy数组或类似结构，每一行为一条曲线
+    labels: 每条曲线的标签，长度为n的列表
+    """
+    fig = plt.figure()
+    plt.xticks([])
+    # 设置x轴和y轴的标签
+    plt.xlabel('Training Steps')
+    plt.ylabel('Loss')
+    n = y.shape[0]
+    for i in range(n):
+        if labels is not None:
+            plt.plot(y[i], label=labels[i])
+        else:
+            plt.plot(y[i], label=f"line_{i+1}")
+    if title is not None:
+        plt.title(title)
+    plt.legend()
+    if save:
+        fig.savefig('./checkpoint/fig/ablationBloss.pdf')
+    else:
+        plt.show()
+    plt.close(fig)
+
+
 
 def sub_figure(y, save=True, title=None, label=None):
     """
@@ -77,8 +104,11 @@ def get_name(args, acc):
 
 def draw_boxplot_by_your_husband(data_list, title, use_data, length):
     noise_range = ['raw', 1, -1, -3, -6]
-    gcu_range = ['gcu', 'nogcu']
-    colors = ['green', 'purple']
+    gcu_range = ['With GCU', 'Without GCU']
+    if use_data == 'xjtu':
+        colors = ['green', 'purple']
+    elif use_data == 'mcc5':
+        colors = ['blue', 'c']
 
     boxplot_positions = []
     colors_used = []
@@ -118,9 +148,10 @@ def draw_boxplot_by_your_husband(data_list, title, use_data, length):
         labels=[f"{i}" for i in noise_range],
         fontsize=10
     )
-    ax.set_xlabel("Noise")
-    ax.set_ylabel("Accuracy")
-    ax.set_title(title)
+    ax.set_xlabel("Noise", fontsize=22)
+    ax.set_ylabel("Accuracy Rate", fontsize=22)
+    ax.tick_params(axis='both', labelsize=20)
+    ax.set_title(title, fontsize=24)
     
     # Create the legend handles for the flier, mean, and median
     flier_marker = mlines.Line2D([], [], marker='o', color='w', markerfacecolor='white', markeredgecolor='black', markersize=6, label='Flier')
@@ -135,7 +166,9 @@ def draw_boxplot_by_your_husband(data_list, title, use_data, length):
         title="Methods",
         loc="upper right",
         bbox_to_anchor=(1, 1),
-        frameon=False
+        frameon=False,
+        fontsize=10,
+        title_fontsize=20
     )
     # legend1.set_title("Methods", prop={ 'weight': 'bold'})
     ax.legend(
@@ -144,12 +177,14 @@ def draw_boxplot_by_your_husband(data_list, title, use_data, length):
         title="Markers",
         loc="upper right" ,
         bbox_to_anchor=(0.999, 0.88),
-        frameon=False
+        frameon=False,
+        fontsize=10,
+        title_fontsize=20
     )
     ax.add_artist(legend1)
     plt.tight_layout()
 
-    plt.savefig(f'./checkpoint/fig/ablitionA_{use_data}_{length}.png')
+    plt.savefig(f'./checkpoint/fig/ablitionA_{use_data}_{length}.pdf')
     plt.close()
     
     
@@ -186,6 +221,43 @@ def draw_boxplot(data_list, title, use_data, length):
     plt.tight_layout()
     plt.savefig(f'./checkpoint/fig/ablitionA_{use_data}_{length}.jpg')
     plt.close()
+
+
+def draw_fill(series1: np.ndarray, series2: np.ndarray, label1: str, label2: str, title: str, save_path: str) -> None:
+    """
+    绘制两条曲线，并在每条曲线与y=0之间填充颜色，带有'.'标记。
+    图像等比放大，避免画面太挤。
+    设置横坐标标签为Training Steps，纵轴标签为acc。
+    画面于边框之间不要有空白。
+    """
+    x = np.arange(series1.size)
+    fig, ax = plt.subplots(figsize=(8, 6))  # 等比放大图像
+    c1, c11 = '#8dee5c', '#97d65b'
+    c2, c22 = '#e45a41', '#e67860'
+    ax.set_xlabel('Training Steps', fontname='Times New Roman', fontsize=12)
+    ax.set_ylabel('Gradient Norm', fontname='Times New Roman', fontsize=12)
+    # 不显示x轴的坐标
+    ax.set_xticks([])
+
+    # 第一条曲线：线+带80%透明度的'.'标记+填充到y=0
+    ax.plot(x, series1, color=c1, marker='*', markersize=3, linewidth=0.1, label=label1, alpha=1)
+    ax.fill_between(x, series1, 0, color=c11, alpha=0.2)
+
+    # 第二条曲线：线+带80%透明度的'.'标记+填充到y=0
+    ax.plot(x, series2, color=c2, marker='.', markersize=3, linewidth=0.1, label=label2, alpha=.9)
+    ax.fill_between(x, series2, 0, color=c22, alpha=0.2)
+
+    # 基线y=0
+    ax.axhline(0, color='k', linewidth=0.8, alpha=0.3)
+
+    if title:
+        ax.set_title(title)
+    ax.legend(fontsize=12)
+
+    # 去除画面与边框之间的空白
+    # plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    fig.savefig(f'./checkpoint/fig/ablitionB.jpg', bbox_inches='tight')
+    plt.close(fig)
 
 
 # ****************************** About Data **********************************

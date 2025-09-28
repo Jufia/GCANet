@@ -29,12 +29,12 @@ parser.add_argument('--head', type=int, default=2)
 parser.add_argument('--GPU', type=str, default='cuda:1')
 parser.add_argument('--log_name', type=str, default="test.log")
 parser.add_argument('--algorithm', type=str, default='GCA')
-parser.add_argument('--use_data', type=str, default='hit', choices=['hit', 'xjtu', 'mcc5', 'dirg'])
+parser.add_argument('--use_data', type=str, default='mcc5', choices=['hit', 'xjtu', 'mcc5', 'dirg'])
 parser.add_argument('--optimizer', type=str, default='adam', choices=['adam', 'sgd', 'radam'])
 
 parser.add_argument('--alpha', type=float, default=1)
 parser.add_argument('--epochs', type=int, default=100)
-parser.add_argument('--length', type=int, default=512, help='数据处理部分的序列长度')
+parser.add_argument('--length', type=int, default=1024, help='数据处理部分的序列长度')
 
 parser.add_argument('--lambda_l2', type=float, default=1e-4)
 

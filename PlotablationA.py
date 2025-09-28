@@ -32,7 +32,7 @@ def get_data(data, length, GPU, head):
     for gcu in ['gcu', 'nogcu']:
         args.gcug = gcu if gcu == 'gcu' else 'none'
         model = GCANet().to(args.GPU)
-        for args.snr in ['raw', 1, -1, -3, -6]:
+        for args.snr in [-1, -3]:
             model_weight = Path('./checkpoint/dic/', f'ablitionA_{args.length}_{args.use_data}_{args.snr}_{gcu}.log.pth')
             model.load_state_dict(torch.load(model_weight, weights_only=True))
             model.eval()
@@ -53,16 +53,18 @@ def plot_data(data, length):
         data_list.append(gcu)
         nogcu = np.load(Path('./checkpoint/res', f'ablitionA_{length}_{data}_{snr}_nogcu.npy'))
         data_list.append(nogcu)
-    
-    title = f'Accuarcy of {data} at {length}'
+    name = {'xjtu': 'XJTUGearbox', 'mcc5': 'MCC5-THU'}
+    title = f'{name[data]} Accuracy for Length {length}'
     draw_boxplot_by_your_husband(data_list, title, data, length)
     print(f'plot {data}_{length} done')
 
     
 if __name__ == '__main__':
     data = 'mcc5'
-    length = 512
+    length = 1024
     GPU = 'cuda:1'
     head = 6
     # get_data(data, length, GPU, head)
-    plot_data(data, length)
+    for data, length in [('xjtu', 1024), ('mcc5', 1024), ('xjtu', 512), ('mcc5', 512)]:
+    # for data, length in [('xjtu', 1024)]:
+        plot_data(data, length)
